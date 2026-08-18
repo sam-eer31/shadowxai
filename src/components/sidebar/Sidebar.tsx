@@ -77,15 +77,13 @@ export function Sidebar() {
       const mobile = window.innerWidth < 1024;
       setIsMobile(mobile);
       if (mobile && sidebarOpen) {
-        // on initial load on mobile, close sidebar
         setSidebarOpen(false);
       }
     };
     checkMobile();
-    window.addEventListener('resize', () => {
-      setIsMobile(window.innerWidth < 1024);
-    });
-    return () => window.removeEventListener('resize', () => {});
+    const handleResize = () => setIsMobile(window.innerWidth < 1024);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -141,22 +139,25 @@ export function Sidebar() {
         borderRight: sidebarOpen || !isMobile ? '1px solid var(--border)' : 'none',
       }}
     >
-      <div className="flex flex-col h-full w-full min-w-[260px] lg:min-w-0 pt-[max(0.5rem,env(safe-area-inset-top))] pb-[max(0.5rem,env(safe-area-inset-bottom))]">
+      <div className="flex flex-col h-full w-[260px] pt-[max(0.5rem,env(safe-area-inset-top))] pb-[max(0.5rem,env(safe-area-inset-bottom))]">
         {/* Top Header */}
-        <div className="flex items-center justify-between h-14 shrink-0 px-3.5 border-b lg:border-none" style={{ borderColor: 'var(--border)' }}>
-          <div className="flex items-center gap-2.5 min-w-0">
+        <div
+          className="flex items-center justify-between h-14 shrink-0 px-2.5 border-b lg:border-none"
+          style={{ borderColor: 'var(--border)' }}
+        >
+          <div className="flex items-center min-w-0">
             <button
               onClick={toggleSidebar}
               className="w-10 h-10 flex items-center justify-center rounded-xl transition-colors hover:bg-black/10 dark:hover:bg-white/10 active:scale-95 shrink-0"
               style={{ color: 'var(--text-secondary)' }}
-              title={sidebarOpen ? 'Close sidebar' : 'Open sidebar'}
+              title={sidebarOpen ? 'Collapse sidebar' : 'Expand sidebar'}
               aria-label="Toggle sidebar"
             >
-              {sidebarOpen ? <PanelLeftClose size={20} /> : <PanelLeftOpen size={20} />}
+              {sidebarOpen ? <PanelLeftClose size={19} /> : <PanelLeftOpen size={19} />}
             </button>
             <span
-              className={`font-semibold text-base tracking-tight truncate transition-opacity duration-200 ${
-                sidebarOpen ? 'opacity-100' : 'opacity-0 lg:hidden'
+              className={`font-semibold text-base tracking-tight truncate ml-2.5 transition-opacity duration-200 ${
+                sidebarOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
               }`}
               style={{ color: 'var(--text-primary)' }}
             >
@@ -168,7 +169,7 @@ export function Sidebar() {
           {isMobile && sidebarOpen && (
             <button
               onClick={() => setSidebarOpen(false)}
-              className="w-9 h-9 flex items-center justify-center rounded-lg hover:bg-black/10 dark:hover:bg-white/10 active:scale-90 transition-transform"
+              className="w-9 h-9 flex items-center justify-center rounded-lg hover:bg-black/10 dark:hover:bg-white/10 active:scale-90 transition-transform mr-1"
               style={{ color: 'var(--text-secondary)' }}
               aria-label="Close menu"
             >
@@ -178,38 +179,35 @@ export function Sidebar() {
         </div>
 
         {/* Action Items (New Chat, Search) */}
-        <div className="flex flex-col gap-1.5 px-3 py-2 shrink-0">
+        <div className="flex flex-col gap-1 px-2.5 py-1.5 shrink-0">
+          {/* New Chat Button */}
           <button
             onClick={() => {
               newChat();
               handleSidebarItemClick();
             }}
-            className={`
-              flex items-center gap-2.5 rounded-xl transition-all duration-150 overflow-hidden h-11 px-2.5
-              hover:bg-black/10 dark:hover:bg-white/10 active:scale-[0.98]
-              ${sidebarOpen ? 'justify-start w-full' : 'justify-center lg:px-0'}
-            `}
+            className="w-full flex items-center rounded-xl transition-all duration-150 overflow-hidden h-10 hover:bg-black/10 dark:hover:bg-white/10 active:scale-[0.98] group"
             style={{
-              background: 'var(--accent-light)',
-              color: 'var(--accent)',
+              color: 'var(--text-primary)',
             }}
             title="New Chat"
           >
-            <div className="w-6 h-6 flex items-center justify-center shrink-0">
-              <SquarePen size={18} />
+            <div className="w-10 h-10 flex items-center justify-center shrink-0">
+              <SquarePen size={19} style={{ color: 'var(--accent)' }} />
             </div>
             <span
-              className={`whitespace-nowrap text-sm font-medium transition-opacity duration-200 ${
-                sidebarOpen ? 'opacity-100' : 'opacity-0 lg:hidden'
+              className={`whitespace-nowrap text-sm font-medium transition-opacity duration-200 ml-1 ${
+                sidebarOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
               }`}
             >
               New Chat
             </span>
           </button>
 
+          {/* Search Button / Input */}
           <div
             className={`
-              flex items-center rounded-xl transition-colors overflow-hidden h-10 px-2.5
+              w-full flex items-center rounded-xl transition-colors overflow-hidden h-10
               ${sidebarOpen ? 'bg-black/5 dark:bg-white/5 border' : 'hover:bg-black/10 dark:hover:bg-white/10 cursor-pointer'}
             `}
             style={{
@@ -221,16 +219,16 @@ export function Sidebar() {
             }}
             title="Search conversations"
           >
-            <div className="w-6 h-6 flex items-center justify-center shrink-0">
-              <Search size={16} />
+            <div className="w-10 h-10 flex items-center justify-center shrink-0">
+              <Search size={19} />
             </div>
             <input
               type="text"
               placeholder="Search chats..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className={`bg-transparent outline-none text-sm w-full ml-2 transition-opacity duration-200 ${
-                sidebarOpen ? 'opacity-100' : 'opacity-0 lg:hidden'
+              className={`bg-transparent outline-none text-sm w-full transition-opacity duration-200 ml-1 ${
+                sidebarOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
               }`}
               style={{ color: 'var(--text-primary)' }}
               tabIndex={sidebarOpen ? 0 : -1}
@@ -241,7 +239,7 @@ export function Sidebar() {
                   e.stopPropagation();
                   setSearchQuery('');
                 }}
-                className="p-1 rounded-full hover:bg-black/10 dark:hover:bg-white/10"
+                className="p-1 rounded-full hover:bg-black/10 dark:hover:bg-white/10 mr-2"
               >
                 <X size={12} />
               </button>
@@ -252,7 +250,7 @@ export function Sidebar() {
         {/* Conversation List */}
         <div
           className={`flex-1 overflow-y-auto px-2.5 scrollbar-hide py-2 transition-opacity duration-200 ${
-            sidebarOpen ? 'opacity-100' : 'opacity-0 lg:hidden'
+            sidebarOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
           }`}
         >
           {filtered.length === 0 ? (
@@ -281,7 +279,7 @@ export function Sidebar() {
                         key={conv.id}
                         className={`
                           group relative flex items-center px-3 py-2.5 my-0.5 rounded-xl cursor-pointer
-                          transition-all duration-150 min-h-[42px] touch-manipulation
+                          transition-all duration-150 min-h-[40px] touch-manipulation
                           ${
                             isSelected
                               ? 'bg-black/10 dark:bg-white/10 font-medium'
@@ -425,7 +423,7 @@ export function Sidebar() {
 
         {/* Footer */}
         <div
-          className="flex flex-col gap-1 px-3 pt-2 pb-1 shrink-0 border-t"
+          className="flex flex-col gap-1 px-2.5 pt-2 pb-1 shrink-0 border-t"
           style={{
             borderColor: sidebarOpen ? 'var(--border)' : 'transparent',
           }}
@@ -435,19 +433,16 @@ export function Sidebar() {
               openTools();
               handleSidebarItemClick();
             }}
-            className={`
-              flex items-center rounded-xl transition-colors hover:bg-black/10 dark:hover:bg-white/10 overflow-hidden h-11 px-2.5
-              ${sidebarOpen ? 'justify-start w-full' : 'justify-center lg:px-0'}
-            `}
+            className="w-full flex items-center rounded-xl transition-colors hover:bg-black/10 dark:hover:bg-white/10 overflow-hidden h-10"
             style={{ color: 'var(--text-secondary)' }}
             title="Tools & Marketplace"
           >
-            <div className="w-6 h-6 flex items-center justify-center shrink-0">
-              <Wrench size={18} />
+            <div className="w-10 h-10 flex items-center justify-center shrink-0">
+              <Wrench size={19} />
             </div>
             <span
-              className={`whitespace-nowrap text-sm font-medium transition-opacity duration-200 ml-2.5 ${
-                sidebarOpen ? 'opacity-100' : 'opacity-0 lg:hidden'
+              className={`whitespace-nowrap text-sm font-medium transition-opacity duration-200 ml-1 ${
+                sidebarOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
               }`}
             >
               Tools & Marketplace
@@ -459,19 +454,16 @@ export function Sidebar() {
               openSettings();
               handleSidebarItemClick();
             }}
-            className={`
-              flex items-center rounded-xl transition-colors hover:bg-black/10 dark:hover:bg-white/10 overflow-hidden h-11 px-2.5
-              ${sidebarOpen ? 'justify-start w-full' : 'justify-center lg:px-0'}
-            `}
+            className="w-full flex items-center rounded-xl transition-colors hover:bg-black/10 dark:hover:bg-white/10 overflow-hidden h-10"
             style={{ color: 'var(--text-secondary)' }}
             title="Settings"
           >
-            <div className="w-6 h-6 flex items-center justify-center shrink-0">
-              <Settings size={18} />
+            <div className="w-10 h-10 flex items-center justify-center shrink-0">
+              <Settings size={19} />
             </div>
             <span
-              className={`whitespace-nowrap text-sm font-medium transition-opacity duration-200 ml-2.5 ${
-                sidebarOpen ? 'opacity-100' : 'opacity-0 lg:hidden'
+              className={`whitespace-nowrap text-sm font-medium transition-opacity duration-200 ml-1 ${
+                sidebarOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
               }`}
             >
               Settings
