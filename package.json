@@ -1,5 +1,5 @@
 {
-  "name": "openchat-app",
+  "name": "shadow-app",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -9,9 +9,19 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "cheerio": "^1.2.0",
+    "duck-duck-scrape": "^2.2.7",
+    "highlight.js": "^11.12.0",
+    "idb": "^8.0.3",
+    "lucide-react": "^1.31.0",
     "next": "16.3.1",
     "react": "19.2.8",
-    "react-dom": "19.2.8"
+    "react-dom": "19.2.8",
+    "react-markdown": "^10.1.0",
+    "rehype-highlight": "^7.0.2",
+    "remark-gfm": "^4.0.1",
+    "ts-duckduckgo-search": "^0.3.1",
+    "zustand": "^5.0.15"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
