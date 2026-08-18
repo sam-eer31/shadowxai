@@ -23,7 +23,7 @@ export default function Home() {
   }, [initSettings, initChat]);
 
   return (
-    <div className="flex h-screen h-[100dvh] w-full max-w-full overflow-hidden relative">
+    <div className="absolute inset-0 flex overflow-hidden">
       {/* Sidebar */}
       <Sidebar />
 

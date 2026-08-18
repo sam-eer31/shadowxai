@@ -186,7 +186,7 @@ export function ChatInput() {
 
   return (
     <div
-      className="border-t px-3 sm:px-4 pt-2.5 pb-[max(0.75rem,env(safe-area-inset-bottom))] shrink-0 relative"
+      className="border-t px-3 sm:px-4 pt-2.5 pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))] shrink-0 relative"
       style={{ borderColor: 'var(--border)', background: 'var(--bg-primary)' }}
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
