@@ -173,9 +173,14 @@ function OllamaConfig() {
 
   return (
     <div>
-      <h3 className="text-sm font-semibold mb-3" style={{ color: 'var(--text-primary)' }}>
-        Ollama Cloud
-      </h3>
+      <div className="flex items-center justify-between mb-3">
+        <h3 className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
+          Ollama Cloud
+        </h3>
+        <a href="https://ollama.com/settings/keys" target="_blank" rel="noopener noreferrer" className="text-xs hover:underline" style={{ color: 'var(--accent)' }}>
+          Get API Key &rarr;
+        </a>
+      </div>
       <div className="space-y-3">
         <div>
           <label className="text-xs font-medium mb-1 block" style={{ color: 'var(--text-secondary)' }}>API Key</label>
@@ -305,9 +310,14 @@ function GeminiConfig() {
 
   return (
     <div>
-      <h3 className="text-sm font-semibold mb-3" style={{ color: 'var(--text-primary)' }}>
-        Google Gemini
-      </h3>
+      <div className="flex items-center justify-between mb-3">
+        <h3 className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
+          Google Gemini
+        </h3>
+        <a href="https://aistudio.google.com/api-keys" target="_blank" rel="noopener noreferrer" className="text-xs hover:underline" style={{ color: 'var(--accent)' }}>
+          Get API Key &rarr;
+        </a>
+      </div>
       <div className="space-y-3">
         <div>
           <label className="text-xs font-medium mb-1 block" style={{ color: 'var(--text-secondary)' }}>API Key</label>
@@ -429,9 +439,14 @@ function CloudflareConfig() {
 
   return (
     <div>
-      <h3 className="text-sm font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>
-        Cloudflare Workers AI
-      </h3>
+      <div className="flex items-center justify-between mb-1">
+        <h3 className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
+          Cloudflare Workers AI
+        </h3>
+        <a href="https://dash.cloudflare.com/50ba58cd15672379bd34ff0978a899fa/ai/workers-ai/api-quick-start" target="_blank" rel="noopener noreferrer" className="text-xs hover:underline" style={{ color: 'var(--accent)' }}>
+          Get API Key &rarr;
+        </a>
+      </div>
       <p className="text-xs mb-3" style={{ color: 'var(--text-tertiary)' }}>
         Optional — used for image generation only.
       </p>
