@@ -49,6 +49,14 @@ export function MarkdownRenderer({ content }: MarkdownRendererProps) {
             />
           );
         },
+        // Wrap table in scrollable container for mobile
+        table(props: ComponentPropsWithoutRef<'table'>) {
+          return (
+            <div className="table-wrapper">
+              <table {...props} />
+            </div>
+          );
+        },
         // Wrap pre for code blocks
         pre(props: ComponentPropsWithoutRef<'pre'>) {
           return <>{props.children}</>;

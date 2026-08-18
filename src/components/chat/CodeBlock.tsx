@@ -26,27 +26,29 @@ export function CodeBlock({ language, children, ...rest }: CodeBlockProps & Reco
   };
 
   return (
-    <div className="relative group rounded-lg overflow-hidden my-2" style={{ background: 'var(--bg-tertiary)' }}>
+    <div className="relative group rounded-xl overflow-hidden my-3 border max-w-full shadow-xs" style={{ background: 'var(--bg-tertiary)', borderColor: 'var(--border)' }}>
       {/* Language label + Copy button */}
       <div
-        className="flex items-center justify-between px-4 py-1.5 text-xs"
+        className="flex items-center justify-between px-3.5 py-1.5 text-xs select-none"
         style={{
           background: 'var(--bg-secondary)',
           borderBottom: '1px solid var(--border)',
           color: 'var(--text-tertiary)',
         }}
       >
-        <span className="font-mono">{language || 'code'}</span>
+        <span className="font-mono text-[11px] uppercase tracking-wider">{language || 'code'}</span>
         <button
           onClick={handleCopy}
-          className="flex items-center gap-1 px-2 py-0.5 rounded transition-colors hover:bg-black/10 dark:hover:bg-white/10"
+          className="flex items-center gap-1 px-2.5 py-1 rounded-md transition-colors hover:bg-black/10 dark:hover:bg-white/10 active:scale-95 text-xs font-medium"
+          style={{ color: copied ? 'var(--success)' : 'var(--text-secondary)' }}
+          aria-label="Copy code"
         >
-          {copied ? <Check size={12} /> : <Copy size={12} />}
-          {copied ? 'Copied!' : 'Copy'}
+          {copied ? <Check size={13} /> : <Copy size={13} />}
+          <span>{copied ? 'Copied' : 'Copy'}</span>
         </button>
       </div>
       {/* Code content */}
-      <pre className="!m-0 !rounded-none">
+      <pre className="!m-0 !rounded-none overflow-x-auto p-3.5 text-xs sm:text-sm leading-relaxed scrollbar-thin">
         <code className={`language-${language}`} {...rest}>
           {children}
         </code>

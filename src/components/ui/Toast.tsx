@@ -10,7 +10,7 @@ export function ToastContainer() {
   if (toasts.length === 0) return null;
 
   return (
-    <div className="fixed top-4 right-4 z-[100] flex flex-col gap-2 max-w-sm">
+    <div className="fixed top-3 inset-x-3 z-[100] flex flex-col gap-2 pt-[env(safe-area-inset-top)] sm:top-4 sm:right-4 sm:inset-x-auto sm:max-w-sm pointer-events-none">
       {toasts.map((toast) => (
         <ToastItem key={toast.id} toast={toast} onClose={() => removeToast(toast.id)} />
       ))}
@@ -37,20 +37,21 @@ function ToastItem({ toast, onClose }: { toast: Toast; onClose: () => void }) {
 
   return (
     <div
-      className="flex items-start gap-3 px-4 py-3 rounded-xl border shadow-lg toast-enter"
+      className="pointer-events-auto flex items-start gap-3 px-4 py-3 rounded-2xl border shadow-xl toast-enter backdrop-blur-md"
       style={{
         background: 'var(--bg-secondary)',
         borderColor: 'var(--border)',
       }}
     >
-      <Icon size={16} className="shrink-0 mt-0.5" style={{ color: colors[toast.type] }} />
-      <p className="flex-1 text-sm" style={{ color: 'var(--text-primary)' }}>
+      <Icon size={17} className="shrink-0 mt-0.5" style={{ color: colors[toast.type] }} />
+      <p className="flex-1 text-xs sm:text-sm font-medium leading-relaxed" style={{ color: 'var(--text-primary)' }}>
         {toast.message}
       </p>
       <button
         onClick={onClose}
-        className="shrink-0 p-0.5 rounded hover:bg-black/10 dark:hover:bg-white/10 transition-colors"
+        className="shrink-0 p-1 rounded-lg hover:bg-black/10 dark:hover:bg-white/10 transition-colors"
         style={{ color: 'var(--text-tertiary)' }}
+        aria-label="Dismiss toast"
       >
         <X size={14} />
       </button>

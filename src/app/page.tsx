@@ -23,20 +23,21 @@ export default function Home() {
   }, [initSettings, initChat]);
 
   return (
-    <div className="flex h-screen w-screen overflow-hidden">
+    <div className="flex h-screen h-[100dvh] w-full max-w-full overflow-hidden relative">
       {/* Sidebar */}
       <Sidebar />
 
       {/* Mobile sidebar overlay */}
       {sidebarOpen && (
         <div
-          className="fixed inset-0 bg-black/50 z-30 lg:hidden"
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 lg:hidden transition-opacity duration-300"
           onClick={() => useUIStore.getState().setSidebarOpen(false)}
+          aria-hidden="true"
         />
       )}
 
       {/* Main Chat Area */}
-      <main className="flex-1 flex flex-col min-w-0">
+      <main className="flex-1 flex flex-col min-w-0 h-full w-full overflow-hidden">
         <ChatArea />
       </main>
 

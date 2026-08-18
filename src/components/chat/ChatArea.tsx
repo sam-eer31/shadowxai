@@ -1,9 +1,8 @@
 'use client';
 
 import { useRef, useEffect, useState, useCallback } from 'react';
-import { PanelLeftOpen, ChevronDown } from 'lucide-react';
+import { ChevronDown } from 'lucide-react';
 import { useChatStore } from '@/stores/chat-store';
-import { useUIStore } from '@/stores/ui-store';
 
 import { ChatHeader } from './ChatHeader';
 import { MessageBubble } from './MessageBubble';
@@ -19,13 +18,11 @@ export function ChatArea() {
   const streamingThought = useChatStore((s) => s.streamingThought);
   const thoughtTimeMs = useChatStore((s) => s.thoughtTimeMs);
   const pendingToolCalls = useChatStore((s) => s.pendingToolCalls);
-  const sidebarOpen = useUIStore((s) => s.sidebarOpen);
-  const toggleSidebar = useUIStore((s) => s.toggleSidebar);
 
   const conv = conversations.find((c) => c.id === activeId);
   const containerRef = useRef<HTMLDivElement>(null);
   const innerContentRef = useRef<HTMLDivElement>(null);
-  
+
   // Track whether user is at bottom (default true)
   const isAtBottomRef = useRef(true);
   const [showScrollBottom, setShowScrollBottom] = useState(false);
@@ -45,7 +42,7 @@ export function ChatArea() {
   useEffect(() => {
     isAtBottomRef.current = true;
     setShowScrollBottom(false);
-    
+
     // Snap immediately and after DOM paint
     scrollToBottom(false);
     const timer = setTimeout(() => {
@@ -76,7 +73,7 @@ export function ChatArea() {
     };
   }, [isGenerating]);
 
-  // Backup ResizeObserver whenever content grows (e.g. tool cards, images, markdown expansion)
+  // Backup ResizeObserver whenever content grows
   useEffect(() => {
     const innerEl = innerContentRef.current;
     const container = containerRef.current;
@@ -109,33 +106,28 @@ export function ChatArea() {
   };
 
   return (
-    <div className="flex flex-col h-full relative" style={{ background: 'var(--bg-primary)' }}>
+    <div className="flex flex-col h-full w-full relative min-w-0" style={{ background: 'var(--bg-primary)' }}>
       {/* Header */}
-      <div className="flex items-center gap-2 px-4 py-3 border-b" style={{ borderColor: 'var(--border)' }}>
-        {!sidebarOpen && (
-          <button
-            onClick={toggleSidebar}
-            className="p-1.5 rounded-lg transition-colors hover:bg-black/10 dark:hover:bg-white/10 lg:hidden"
-            style={{ color: 'var(--text-secondary)' }}
-            aria-label="Open sidebar"
-          >
-            <PanelLeftOpen size={18} />
-          </button>
-        )}
+      <header
+        className="flex items-center px-3 sm:px-4 py-2.5 sm:py-3 border-b shrink-0 z-10 pt-[max(0.6rem,env(safe-area-inset-top))]"
+        style={{ borderColor: 'var(--border)', background: 'var(--bg-primary)' }}
+      >
         <ChatHeader conversation={conv} />
-      </div>
+      </header>
 
       {/* Messages */}
       {!conv ? (
-        <EmptyState />
+        <div className="flex-1 overflow-y-auto flex flex-col justify-center">
+          <EmptyState />
+        </div>
       ) : (
-        <div className="flex-1 relative overflow-hidden flex flex-col">
+        <div className="flex-1 relative overflow-hidden flex flex-col min-h-0">
           <div
             ref={containerRef}
-            className="flex-1 overflow-y-auto"
+            className="flex-1 overflow-y-auto overscroll-contain"
             onScroll={handleScroll}
           >
-            <div ref={innerContentRef} className="max-w-3xl mx-auto px-4 py-6">
+            <div ref={innerContentRef} className="max-w-3xl mx-auto px-3 sm:px-6 py-4 sm:py-6 w-full">
               {conv.messages.map((msg) => (
                 <MessageBubble key={msg.id} message={msg} allMessages={conv.messages} />
               ))}
@@ -160,7 +152,7 @@ export function ChatArea() {
                 setShowScrollBottom(false);
                 scrollToBottom(true);
               }}
-              className="absolute bottom-4 right-8 p-2.5 rounded-full shadow-lg border transition-all duration-200 hover:scale-105 active:scale-95 z-20 flex items-center justify-center animate-fade-in cursor-pointer"
+              className="absolute bottom-4 right-4 sm:right-6 p-2.5 rounded-full shadow-lg border transition-all duration-200 hover:scale-105 active:scale-95 z-20 flex items-center justify-center animate-fade-in cursor-pointer"
               style={{
                 background: 'var(--bg-secondary)',
                 borderColor: 'var(--border)',
@@ -174,7 +166,7 @@ export function ChatArea() {
         </div>
       )}
 
-      {/* Input */}
+      {/* Input bar */}
       <ChatInput />
     </div>
   );

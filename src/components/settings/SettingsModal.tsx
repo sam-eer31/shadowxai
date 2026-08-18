@@ -44,56 +44,107 @@ export function SettingsModal() {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      onClick={(e) => { if (e.target === e.currentTarget) closeSettings(); }}
+      className="fixed inset-0 z-50 flex items-center justify-center p-0 md:p-4"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) closeSettings();
+      }}
     >
       {/* Backdrop */}
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity" />
 
       {/* Modal */}
       <div
-        className="relative w-full max-w-2xl h-[600px] max-h-[85vh] rounded-2xl overflow-hidden shadow-2xl animate-fade-in flex flex-col"
+        className={`
+          relative w-full h-full md:h-[620px] md:max-h-[88vh] md:max-w-2xl
+          md:rounded-3xl overflow-hidden shadow-2xl animate-fade-in flex flex-col
+          pt-[max(0.5rem,env(safe-area-inset-top))] pb-[max(0.5rem,env(safe-area-inset-bottom))]
+        `}
         style={{ background: 'var(--bg-primary)', border: '1px solid var(--border)' }}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b" style={{ borderColor: 'var(--border)' }}>
-          <div className="flex items-center gap-2">
-            <Settings size={18} style={{ color: 'var(--accent)' }} />
-            <h2 className="text-lg font-semibold" style={{ color: 'var(--text-primary)' }}>Settings</h2>
+        <div
+          className="flex items-center justify-between px-4 sm:px-6 py-3.5 border-b shrink-0"
+          style={{ borderColor: 'var(--border)' }}
+        >
+          <div className="flex items-center gap-2.5">
+            <div
+              className="w-8 h-8 rounded-xl flex items-center justify-center"
+              style={{ background: 'var(--accent-light)', color: 'var(--accent)' }}
+            >
+              <Settings size={17} />
+            </div>
+            <h2 className="text-base sm:text-lg font-semibold" style={{ color: 'var(--text-primary)' }}>
+              Settings
+            </h2>
           </div>
           <button
             onClick={closeSettings}
-            className="p-1.5 rounded-lg transition-colors hover:bg-black/10 dark:hover:bg-white/10"
+            className="w-9 h-9 flex items-center justify-center rounded-xl transition-colors hover:bg-black/10 dark:hover:bg-white/10 active:scale-95"
             style={{ color: 'var(--text-secondary)' }}
+            aria-label="Close settings"
           >
             <X size={18} />
           </button>
         </div>
 
-        <div className="flex flex-1 min-h-0">
-          {/* Tab navigation */}
-          <div
-            className="w-44 shrink-0 border-r py-2 overflow-y-auto"
-            style={{ borderColor: 'var(--border)', background: 'var(--bg-secondary)' }}
-          >
-            {TABS.map((tab) => (
+        {/* Mobile Horizontal Tabs (< md screens) */}
+        <div
+          className="flex md:hidden overflow-x-auto scrollbar-hide px-3 py-2 border-b gap-1.5 shrink-0"
+          style={{ borderColor: 'var(--border)', background: 'var(--bg-secondary)' }}
+        >
+          {TABS.map((tab) => {
+            const isSelected = activeTab === tab.id;
+            return (
               <button
                 key={tab.id}
                 onClick={() => setTab(tab.id)}
-                className="w-full flex items-center gap-2 px-4 py-2.5 text-xs transition-colors"
+                className={`
+                  flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium whitespace-nowrap transition-all duration-150 shrink-0
+                  ${isSelected ? 'shadow-xs font-semibold' : 'hover:bg-black/5 dark:hover:bg-white/5 opacity-70'}
+                `}
                 style={{
-                  color: activeTab === tab.id ? 'var(--accent)' : 'var(--text-secondary)',
-                  background: activeTab === tab.id ? 'var(--accent-light)' : 'transparent',
+                  background: isSelected ? 'var(--accent-light)' : 'transparent',
+                  color: isSelected ? 'var(--accent)' : 'var(--text-secondary)',
                 }}
               >
-                <tab.icon size={14} />
+                <tab.icon size={13} />
                 {tab.label}
               </button>
-            ))}
+            );
+          })}
+        </div>
+
+        {/* Main Body */}
+        <div className="flex flex-1 min-h-0 overflow-hidden">
+          {/* Desktop Tab Navigation (>= md screens) */}
+          <div
+            className="hidden md:flex flex-col w-48 shrink-0 border-r py-3 px-2 gap-1 overflow-y-auto"
+            style={{ borderColor: 'var(--border)', background: 'var(--bg-secondary)' }}
+          >
+            {TABS.map((tab) => {
+              const isSelected = activeTab === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setTab(tab.id)}
+                  className={`
+                    w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium transition-colors
+                    ${isSelected ? 'font-semibold' : 'hover:bg-black/5 dark:hover:bg-white/5 opacity-80'}
+                  `}
+                  style={{
+                    color: isSelected ? 'var(--accent)' : 'var(--text-secondary)',
+                    background: isSelected ? 'var(--accent-light)' : 'transparent',
+                  }}
+                >
+                  <tab.icon size={15} />
+                  {tab.label}
+                </button>
+              );
+            })}
           </div>
 
-          {/* Tab content */}
-          <div className="flex-1 overflow-y-auto p-6">
+          {/* Tab content area */}
+          <div className="flex-1 overflow-y-auto p-4 sm:p-6 overscroll-contain">
             {activeTab === 'providers' && <ProvidersTab />}
             {activeTab === 'appearance' && <AppearanceTab />}
             {activeTab === 'chat' && <ChatTab />}
@@ -123,7 +174,7 @@ function ProvidersTab() {
             useSettingsStore.getState().clearAllCredentials();
             useUIStore.getState().addToast({ type: 'success', message: 'All credentials cleared.' });
           }}
-          className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm transition-colors"
+          className="flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-medium transition-colors hover:bg-red-500/10 active:scale-98"
           style={{ color: 'var(--error)' }}
         >
           <Trash2 size={14} />
@@ -155,7 +206,6 @@ function OllamaConfig() {
 
   const handleTest = async () => {
     if (!apiKey.trim()) return;
-    // Save first
     setCredential('ollama', { apiKey: apiKey.trim() });
     setTesting(true);
     setTestResult(null);
@@ -173,25 +223,33 @@ function OllamaConfig() {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-3">
+      <div className="flex items-center justify-between mb-2">
         <h3 className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
           Ollama Cloud
         </h3>
-        <a href="https://ollama.com/settings/keys" target="_blank" rel="noopener noreferrer" className="text-xs hover:underline" style={{ color: 'var(--accent)' }}>
+        <a
+          href="https://ollama.com/settings/keys"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-xs hover:underline font-medium"
+          style={{ color: 'var(--accent)' }}
+        >
           Get API Key &rarr;
         </a>
       </div>
       <div className="space-y-3">
         <div>
-          <label className="text-xs font-medium mb-1 block" style={{ color: 'var(--text-secondary)' }}>API Key</label>
-          <div className="flex gap-2">
+          <label className="text-xs font-medium mb-1 block" style={{ color: 'var(--text-secondary)' }}>
+            API Key
+          </label>
+          <div className="flex flex-col sm:flex-row gap-2">
             <div className="relative flex-1">
               <input
                 type={showKey ? 'text' : 'password'}
                 value={apiKey}
                 onChange={(e) => setApiKey(e.target.value)}
                 placeholder="Enter your Ollama API key"
-                className="w-full px-3 py-2 pr-10 text-sm rounded-lg border outline-none focus:ring-1"
+                className="w-full px-3.5 py-2.5 pr-10 text-base sm:text-sm rounded-xl border outline-none focus:ring-2"
                 style={{
                   background: 'var(--bg-tertiary)',
                   borderColor: 'var(--border)',
@@ -201,32 +259,39 @@ function OllamaConfig() {
               />
               <button
                 onClick={() => setShowKey(!showKey)}
-                className="absolute right-2 top-1/2 -translate-y-1/2"
+                className="absolute right-3 top-1/2 -translate-y-1/2 p-1"
                 style={{ color: 'var(--text-tertiary)' }}
+                aria-label="Toggle password visibility"
               >
-                {showKey ? <EyeOff size={14} /> : <Eye size={14} />}
+                {showKey ? <EyeOff size={16} /> : <Eye size={16} />}
               </button>
             </div>
-            <button
-              onClick={handleSave}
-              className="px-3 py-2 rounded-lg text-xs font-medium border transition-colors hover:bg-black/5 dark:hover:bg-white/5"
-              style={{ borderColor: 'var(--border)', color: 'var(--text-primary)' }}
-            >
-              Save
-            </button>
-            <button
-              onClick={handleTest}
-              disabled={testing || !apiKey.trim()}
-              className="px-3 py-2 rounded-lg text-xs font-medium transition-colors disabled:opacity-50"
-              style={{ background: 'var(--accent-light)', color: 'var(--accent)' }}
-            >
-              {testing ? <Loader2 size={14} className="animate-spin" /> : 'Test'}
-            </button>
+            <div className="flex gap-2 shrink-0">
+              <button
+                onClick={handleSave}
+                className="flex-1 sm:flex-initial px-4 py-2.5 rounded-xl text-xs font-medium border transition-colors hover:bg-black/5 dark:hover:bg-white/5 active:scale-95"
+                style={{ borderColor: 'var(--border)', color: 'var(--text-primary)' }}
+              >
+                Save
+              </button>
+              <button
+                onClick={handleTest}
+                disabled={testing || !apiKey.trim()}
+                className="flex-1 sm:flex-initial px-4 py-2.5 rounded-xl text-xs font-medium transition-colors disabled:opacity-50 active:scale-95"
+                style={{ background: 'var(--accent-light)', color: 'var(--accent)' }}
+              >
+                {testing ? <Loader2 size={14} className="animate-spin" /> : 'Test Connection'}
+              </button>
+            </div>
           </div>
           {credentials.ollama && (
             <button
-              onClick={() => { removeCredential('ollama'); setApiKey(''); setModels([]); }}
-              className="text-xs mt-1 transition-colors hover:underline"
+              onClick={() => {
+                removeCredential('ollama');
+                setApiKey('');
+                setModels([]);
+              }}
+              className="text-xs mt-2 transition-colors hover:underline"
               style={{ color: 'var(--error)' }}
             >
               Remove credential
@@ -236,24 +301,26 @@ function OllamaConfig() {
 
         {testResult && (
           <div
-            className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs"
+            className="flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs"
             style={{
               background: testResult.success ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.1)',
               color: testResult.success ? 'var(--success)' : 'var(--error)',
             }}
           >
-            {testResult.success ? <CheckCircle size={14} /> : <XCircle size={14} />}
-            {testResult.success ? 'Connected successfully!' : testResult.error}
+            {testResult.success ? <CheckCircle size={15} /> : <XCircle size={15} />}
+            <span>{testResult.success ? 'Connected successfully!' : testResult.error}</span>
           </div>
         )}
 
         {models.length > 0 && (
           <div>
-            <label className="text-xs font-medium mb-1 block" style={{ color: 'var(--text-secondary)' }}>Model</label>
+            <label className="text-xs font-medium mb-1 block" style={{ color: 'var(--text-secondary)' }}>
+              Default Model
+            </label>
             <select
               value={selectedModels.ollama || ''}
               onChange={(e) => setSelectedModel('ollama', e.target.value)}
-              className="w-full px-3 py-2 text-sm rounded-lg border outline-none"
+              className="w-full px-3.5 py-2.5 text-sm rounded-xl border outline-none"
               style={{
                 background: 'var(--bg-tertiary)',
                 borderColor: 'var(--border)',
@@ -262,7 +329,9 @@ function OllamaConfig() {
             >
               <option value="">Select a model</option>
               {models.map((m) => (
-                <option key={m.id} value={m.id}>{m.name}</option>
+                <option key={m.id} value={m.id}>
+                  {m.name}
+                </option>
               ))}
             </select>
           </div>
@@ -310,25 +379,33 @@ function GeminiConfig() {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-3">
+      <div className="flex items-center justify-between mb-2">
         <h3 className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
           Google Gemini
         </h3>
-        <a href="https://aistudio.google.com/api-keys" target="_blank" rel="noopener noreferrer" className="text-xs hover:underline" style={{ color: 'var(--accent)' }}>
+        <a
+          href="https://aistudio.google.com/api-keys"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-xs hover:underline font-medium"
+          style={{ color: 'var(--accent)' }}
+        >
           Get API Key &rarr;
         </a>
       </div>
       <div className="space-y-3">
         <div>
-          <label className="text-xs font-medium mb-1 block" style={{ color: 'var(--text-secondary)' }}>API Key</label>
-          <div className="flex gap-2">
+          <label className="text-xs font-medium mb-1 block" style={{ color: 'var(--text-secondary)' }}>
+            API Key
+          </label>
+          <div className="flex flex-col sm:flex-row gap-2">
             <div className="relative flex-1">
               <input
                 type={showKey ? 'text' : 'password'}
                 value={apiKey}
                 onChange={(e) => setApiKey(e.target.value)}
                 placeholder="Enter your Gemini API key"
-                className="w-full px-3 py-2 pr-10 text-sm rounded-lg border outline-none focus:ring-1"
+                className="w-full px-3.5 py-2.5 pr-10 text-base sm:text-sm rounded-xl border outline-none focus:ring-2"
                 style={{
                   background: 'var(--bg-tertiary)',
                   borderColor: 'var(--border)',
@@ -338,32 +415,39 @@ function GeminiConfig() {
               />
               <button
                 onClick={() => setShowKey(!showKey)}
-                className="absolute right-2 top-1/2 -translate-y-1/2"
+                className="absolute right-3 top-1/2 -translate-y-1/2 p-1"
                 style={{ color: 'var(--text-tertiary)' }}
+                aria-label="Toggle password visibility"
               >
-                {showKey ? <EyeOff size={14} /> : <Eye size={14} />}
+                {showKey ? <EyeOff size={16} /> : <Eye size={16} />}
               </button>
             </div>
-            <button
-              onClick={handleSave}
-              className="px-3 py-2 rounded-lg text-xs font-medium border transition-colors hover:bg-black/5 dark:hover:bg-white/5"
-              style={{ borderColor: 'var(--border)', color: 'var(--text-primary)' }}
-            >
-              Save
-            </button>
-            <button
-              onClick={handleTest}
-              disabled={testing || !apiKey.trim()}
-              className="px-3 py-2 rounded-lg text-xs font-medium transition-colors disabled:opacity-50"
-              style={{ background: 'var(--accent-light)', color: 'var(--accent)' }}
-            >
-              {testing ? <Loader2 size={14} className="animate-spin" /> : 'Test'}
-            </button>
+            <div className="flex gap-2 shrink-0">
+              <button
+                onClick={handleSave}
+                className="flex-1 sm:flex-initial px-4 py-2.5 rounded-xl text-xs font-medium border transition-colors hover:bg-black/5 dark:hover:bg-white/5 active:scale-95"
+                style={{ borderColor: 'var(--border)', color: 'var(--text-primary)' }}
+              >
+                Save
+              </button>
+              <button
+                onClick={handleTest}
+                disabled={testing || !apiKey.trim()}
+                className="flex-1 sm:flex-initial px-4 py-2.5 rounded-xl text-xs font-medium transition-colors disabled:opacity-50 active:scale-95"
+                style={{ background: 'var(--accent-light)', color: 'var(--accent)' }}
+              >
+                {testing ? <Loader2 size={14} className="animate-spin" /> : 'Test Connection'}
+              </button>
+            </div>
           </div>
           {credentials.gemini && (
             <button
-              onClick={() => { removeCredential('gemini'); setApiKey(''); setModels([]); }}
-              className="text-xs mt-1 transition-colors hover:underline"
+              onClick={() => {
+                removeCredential('gemini');
+                setApiKey('');
+                setModels([]);
+              }}
+              className="text-xs mt-2 transition-colors hover:underline"
               style={{ color: 'var(--error)' }}
             >
               Remove credential
@@ -373,24 +457,26 @@ function GeminiConfig() {
 
         {testResult && (
           <div
-            className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs"
+            className="flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs"
             style={{
               background: testResult.success ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.1)',
               color: testResult.success ? 'var(--success)' : 'var(--error)',
             }}
           >
-            {testResult.success ? <CheckCircle size={14} /> : <XCircle size={14} />}
-            {testResult.success ? 'Connected successfully!' : testResult.error}
+            {testResult.success ? <CheckCircle size={15} /> : <XCircle size={15} />}
+            <span>{testResult.success ? 'Connected successfully!' : testResult.error}</span>
           </div>
         )}
 
         {models.length > 0 && (
           <div>
-            <label className="text-xs font-medium mb-1 block" style={{ color: 'var(--text-secondary)' }}>Model</label>
+            <label className="text-xs font-medium mb-1 block" style={{ color: 'var(--text-secondary)' }}>
+              Default Model
+            </label>
             <select
               value={selectedModels.gemini || ''}
               onChange={(e) => setSelectedModel('gemini', e.target.value)}
-              className="w-full px-3 py-2 text-sm rounded-lg border outline-none"
+              className="w-full px-3.5 py-2.5 text-sm rounded-xl border outline-none"
               style={{
                 background: 'var(--bg-tertiary)',
                 borderColor: 'var(--border)',
@@ -399,7 +485,9 @@ function GeminiConfig() {
             >
               <option value="">Select a model</option>
               {models.map((m) => (
-                <option key={m.id} value={m.id}>{m.name}</option>
+                <option key={m.id} value={m.id}>
+                  {m.name}
+                </option>
               ))}
             </select>
           </div>
@@ -443,22 +531,30 @@ function CloudflareConfig() {
         <h3 className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
           Cloudflare Workers AI
         </h3>
-        <a href="https://dash.cloudflare.com/50ba58cd15672379bd34ff0978a899fa/ai/workers-ai/api-quick-start" target="_blank" rel="noopener noreferrer" className="text-xs hover:underline" style={{ color: 'var(--accent)' }}>
+        <a
+          href="https://dash.cloudflare.com/50ba58cd15672379bd34ff0978a899fa/ai/workers-ai/api-quick-start"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-xs hover:underline font-medium"
+          style={{ color: 'var(--accent)' }}
+        >
           Get API Key &rarr;
         </a>
       </div>
       <p className="text-xs mb-3" style={{ color: 'var(--text-tertiary)' }}>
-        Optional — used for image generation only.
+        Optional — used for local image generation tool.
       </p>
       <div className="space-y-3">
         <div>
-          <label className="text-xs font-medium mb-1 block" style={{ color: 'var(--text-secondary)' }}>Account ID</label>
+          <label className="text-xs font-medium mb-1 block" style={{ color: 'var(--text-secondary)' }}>
+            Account ID
+          </label>
           <input
             type="text"
             value={accountId}
             onChange={(e) => setAccountId(e.target.value)}
             placeholder="Your Cloudflare Account ID"
-            className="w-full px-3 py-2 text-sm rounded-lg border outline-none focus:ring-1"
+            className="w-full px-3.5 py-2.5 text-base sm:text-sm rounded-xl border outline-none focus:ring-2"
             style={{
               background: 'var(--bg-tertiary)',
               borderColor: 'var(--border)',
@@ -468,14 +564,16 @@ function CloudflareConfig() {
           />
         </div>
         <div>
-          <label className="text-xs font-medium mb-1 block" style={{ color: 'var(--text-secondary)' }}>API Token</label>
+          <label className="text-xs font-medium mb-1 block" style={{ color: 'var(--text-secondary)' }}>
+            API Token
+          </label>
           <div className="relative">
             <input
               type={showToken ? 'text' : 'password'}
               value={apiToken}
               onChange={(e) => setApiToken(e.target.value)}
               placeholder="Your Cloudflare API Token"
-              className="w-full px-3 py-2 pr-10 text-sm rounded-lg border outline-none focus:ring-1"
+              className="w-full px-3.5 py-2.5 pr-10 text-base sm:text-sm rounded-xl border outline-none focus:ring-2"
               style={{
                 background: 'var(--bg-tertiary)',
                 borderColor: 'var(--border)',
@@ -485,17 +583,18 @@ function CloudflareConfig() {
             />
             <button
               onClick={() => setShowToken(!showToken)}
-              className="absolute right-2 top-1/2 -translate-y-1/2"
+              className="absolute right-3 top-1/2 -translate-y-1/2 p-1"
               style={{ color: 'var(--text-tertiary)' }}
+              aria-label="Toggle token visibility"
             >
-              {showToken ? <EyeOff size={14} /> : <Eye size={14} />}
+              {showToken ? <EyeOff size={16} /> : <Eye size={16} />}
             </button>
           </div>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-col sm:flex-row gap-2">
           <button
             onClick={handleSave}
-            className="px-3 py-2 rounded-lg text-xs font-medium border transition-colors hover:bg-black/5 dark:hover:bg-white/5"
+            className="px-4 py-2.5 rounded-xl text-xs font-medium border transition-colors hover:bg-black/5 dark:hover:bg-white/5 active:scale-95"
             style={{ borderColor: 'var(--border)', color: 'var(--text-primary)' }}
           >
             Save
@@ -503,7 +602,7 @@ function CloudflareConfig() {
           <button
             onClick={handleTest}
             disabled={testing || !accountId.trim() || !apiToken.trim()}
-            className="px-3 py-2 rounded-lg text-xs font-medium transition-colors disabled:opacity-50"
+            className="px-4 py-2.5 rounded-xl text-xs font-medium transition-colors disabled:opacity-50 active:scale-95"
             style={{ background: 'var(--accent-light)', color: 'var(--accent)' }}
           >
             {testing ? <Loader2 size={14} className="animate-spin" /> : 'Test Connection'}
@@ -511,7 +610,11 @@ function CloudflareConfig() {
         </div>
         {credentials.cloudflare && (
           <button
-            onClick={() => { removeCredential('cloudflare'); setAccountId(''); setApiToken(''); }}
+            onClick={() => {
+              removeCredential('cloudflare');
+              setAccountId('');
+              setApiToken('');
+            }}
             className="text-xs transition-colors hover:underline"
             style={{ color: 'var(--error)' }}
           >
@@ -520,14 +623,14 @@ function CloudflareConfig() {
         )}
         {testResult && (
           <div
-            className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs"
+            className="flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs"
             style={{
               background: testResult.success ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.1)',
               color: testResult.success ? 'var(--success)' : 'var(--error)',
             }}
           >
-            {testResult.success ? <CheckCircle size={14} /> : <XCircle size={14} />}
-            {testResult.success ? 'Connected successfully!' : testResult.error}
+            {testResult.success ? <CheckCircle size={15} /> : <XCircle size={15} />}
+            <span>{testResult.success ? 'Connected successfully!' : testResult.error}</span>
           </div>
         )}
       </div>
@@ -542,33 +645,38 @@ function AppearanceTab() {
   const setTheme = useSettingsStore((s) => s.setTheme);
 
   const themes: { value: ThemeMode; label: string; desc: string }[] = [
-    { value: 'light', label: 'Light', desc: 'Light background with dark text' },
-    { value: 'dark', label: 'Dark', desc: 'Dark background with light text' },
-    { value: 'system', label: 'System', desc: 'Follow your system preference' },
+    { value: 'light', label: 'Light', desc: 'Crisp light interface' },
+    { value: 'dark', label: 'Dark', desc: 'Sleek dark interface' },
+    { value: 'system', label: 'System', desc: 'Sync with device' },
   ];
 
   return (
     <div>
-      <h3 className="text-sm font-semibold mb-3" style={{ color: 'var(--text-primary)' }}>Theme</h3>
-      <div className="grid grid-cols-3 gap-3">
-        {themes.map((t) => (
-          <button
-            key={t.value}
-            onClick={() => setTheme(t.value)}
-            className="p-4 rounded-xl border text-center transition-all duration-200 hover:scale-[1.02]"
-            style={{
-              borderColor: theme === t.value ? 'var(--accent)' : 'var(--border)',
-              background: theme === t.value ? 'var(--accent-light)' : 'var(--bg-secondary)',
-            }}
-          >
-            <div className="text-sm font-medium mb-0.5" style={{ color: 'var(--text-primary)' }}>
-              {t.label}
-            </div>
-            <div className="text-xs" style={{ color: 'var(--text-tertiary)' }}>
-              {t.desc}
-            </div>
-          </button>
-        ))}
+      <h3 className="text-sm font-semibold mb-3" style={{ color: 'var(--text-primary)' }}>
+        Theme
+      </h3>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 sm:gap-3">
+        {themes.map((t) => {
+          const isSelected = theme === t.value;
+          return (
+            <button
+              key={t.value}
+              onClick={() => setTheme(t.value)}
+              className="p-4 rounded-2xl border text-left sm:text-center transition-all duration-150 hover:scale-[1.01] active:scale-[0.98]"
+              style={{
+                borderColor: isSelected ? 'var(--accent)' : 'var(--border)',
+                background: isSelected ? 'var(--accent-light)' : 'var(--bg-secondary)',
+              }}
+            >
+              <div className="text-sm font-semibold mb-0.5" style={{ color: isSelected ? 'var(--accent)' : 'var(--text-primary)' }}>
+                {t.label}
+              </div>
+              <div className="text-xs opacity-75" style={{ color: 'var(--text-secondary)' }}>
+                {t.desc}
+              </div>
+            </button>
+          );
+        })}
       </div>
     </div>
   );
@@ -585,7 +693,9 @@ function ChatTab() {
   return (
     <div className="space-y-6">
       <div>
-        <h3 className="text-sm font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>System Prompt</h3>
+        <h3 className="text-sm font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>
+          System Prompt
+        </h3>
         <p className="text-xs mb-2" style={{ color: 'var(--text-tertiary)' }}>
           Instructions sent to the AI at the start of every conversation.
         </p>
@@ -593,7 +703,7 @@ function ChatTab() {
           value={systemPrompt}
           onChange={(e) => setSystemPrompt(e.target.value)}
           rows={4}
-          className="w-full px-3 py-2 text-sm rounded-lg border outline-none resize-y focus:ring-1"
+          className="w-full px-3.5 py-2.5 text-base sm:text-sm rounded-xl border outline-none resize-y focus:ring-2"
           style={{
             background: 'var(--bg-tertiary)',
             borderColor: 'var(--border)',
@@ -603,23 +713,26 @@ function ChatTab() {
         />
       </div>
       <div>
-        <h3 className="text-sm font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>Context Window</h3>
+        <h3 className="text-sm font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>
+          Context Window
+        </h3>
         <p className="text-xs mb-2" style={{ color: 'var(--text-tertiary)' }}>
-          Number of recent messages to include in each request (more = more context but higher cost).
+          Number of recent messages to include in each request (more = deeper context).
         </p>
-        <input
-          type="range"
-          min={4}
-          max={50}
-          value={contextWindowSize}
-          onChange={(e) => setContextWindowSize(parseInt(e.target.value))}
-          className="w-full"
-        />
-        <div className="text-xs text-center mt-1" style={{ color: 'var(--text-secondary)' }}>
-          {contextWindowSize} messages
+        <div className="flex items-center gap-3">
+          <input
+            type="range"
+            min={4}
+            max={50}
+            value={contextWindowSize}
+            onChange={(e) => setContextWindowSize(parseInt(e.target.value))}
+            className="flex-1 accent-indigo-500"
+          />
+          <span className="text-xs font-semibold px-2.5 py-1 rounded-lg shrink-0" style={{ background: 'var(--bg-tertiary)', color: 'var(--text-primary)' }}>
+            {contextWindowSize} msgs
+          </span>
         </div>
       </div>
-
     </div>
   );
 }
@@ -668,42 +781,53 @@ function DataTab() {
   return (
     <div className="space-y-6">
       <div>
-        <h3 className="text-sm font-semibold mb-3" style={{ color: 'var(--text-primary)' }}>Conversations</h3>
-        <div className="flex gap-2">
+        <h3 className="text-sm font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>
+          Conversations Backup
+        </h3>
+        <p className="text-xs mb-3" style={{ color: 'var(--text-tertiary)' }}>
+          Export or restore all your conversations locally in JSON format.
+        </p>
+        <div className="flex flex-col sm:flex-row gap-2">
           <button
             onClick={handleExport}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-medium border transition-colors hover:bg-black/5 dark:hover:bg-white/5"
+            className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs font-medium border transition-colors hover:bg-black/5 dark:hover:bg-white/5 active:scale-95"
             style={{ borderColor: 'var(--border)', color: 'var(--text-primary)' }}
           >
             <Download size={14} />
-            Export All
+            Export All Conversations
           </button>
           <button
             onClick={() => fileInputRef.current?.click()}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-medium border transition-colors hover:bg-black/5 dark:hover:bg-white/5"
+            className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs font-medium border transition-colors hover:bg-black/5 dark:hover:bg-white/5 active:scale-95"
             style={{ borderColor: 'var(--border)', color: 'var(--text-primary)' }}
           >
             <Upload size={14} />
-            Import
+            Import Backup
           </button>
           <input ref={fileInputRef} type="file" accept=".json" className="hidden" onChange={handleImport} />
         </div>
       </div>
 
       <div>
-        <h3 className="text-sm font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>Danger Zone</h3>
-        <div className="space-y-2">
+        <h3 className="text-sm font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>
+          Danger Zone
+        </h3>
+        <div className="flex flex-col sm:flex-row gap-2">
           <button
-            onClick={() => { if (confirm('Delete all conversations? This cannot be undone.')) clearAll(); }}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-medium transition-colors"
+            onClick={() => {
+              if (confirm('Delete all conversations? This cannot be undone.')) clearAll();
+            }}
+            className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs font-medium transition-colors hover:bg-red-500/20 active:scale-95"
             style={{ background: 'rgba(239,68,68,0.1)', color: 'var(--error)' }}
           >
             <Trash2 size={14} />
-            Clear All Conversations
+            Delete All Conversations
           </button>
           <button
-            onClick={() => { if (confirm('Remove all API credentials?')) clearAllCredentials(); }}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-medium transition-colors"
+            onClick={() => {
+              if (confirm('Remove all stored API credentials?')) clearAllCredentials();
+            }}
+            className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs font-medium transition-colors hover:bg-red-500/20 active:scale-95"
             style={{ background: 'rgba(239,68,68,0.1)', color: 'var(--error)' }}
           >
             <Trash2 size={14} />
@@ -721,39 +845,45 @@ function AboutTab() {
   return (
     <div className="space-y-4">
       <div>
-        <h3 className="text-sm font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>Shadow</h3>
+        <h3 className="text-sm font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>
+          Shadow AI Assistant
+        </h3>
         <p className="text-xs leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
-          A privacy-focused AI chat application. Bring your own API keys.
+          A privacy-first, client-side AI chat client. Bring your own keys, with zero telemetry or middleman servers.
         </p>
       </div>
       <div
-        className="p-4 rounded-xl border"
+        className="p-4 rounded-2xl border"
         style={{ borderColor: 'var(--border)', background: 'var(--bg-secondary)' }}
       >
         <h4 className="text-xs font-semibold mb-2 flex items-center gap-1.5" style={{ color: 'var(--success)' }}>
           <Shield size={14} />
-          Privacy & Security
+          Privacy & Security Guarantee
         </h4>
-        <ul className="text-xs space-y-1.5" style={{ color: 'var(--text-secondary)' }}>
-          <li>• Your AI provider credentials are stored locally in your browser.</li>
-          <li>• Your conversations are stored locally using IndexedDB.</li>
-          <li>• Your messages are sent directly to the AI provider you configure.</li>
-          <li>• No data is sent to our servers.</li>
-          <li>• No analytics or tracking.</li>
-          <li>• You are responsible for your own provider usage and limits.</li>
+        <ul className="text-xs space-y-1.5 leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
+          <li>• Credentials remain exclusively in local client storage.</li>
+          <li>• All chats are persisted directly in your browser using IndexedDB.</li>
+          <li>• Requests dispatch straight to your configured provider endpoints.</li>
+          <li>• Zero third-party analytics, logs, or external data tracking.</li>
         </ul>
       </div>
       <div
-        className="p-4 rounded-xl border"
+        className="p-4 rounded-2xl border"
         style={{ borderColor: 'var(--border)', background: 'var(--bg-secondary)' }}
       >
         <h4 className="text-xs font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>
           Supported Providers
         </h4>
-        <ul className="text-xs space-y-1" style={{ color: 'var(--text-secondary)' }}>
-          <li><strong>Ollama Cloud</strong> — Chat, web search, vision, tool calling</li>
-          <li><strong>Google Gemini</strong> — Chat, vision, tool calling</li>
-          <li><strong>Cloudflare Workers AI</strong> — Image generation only</li>
+        <ul className="text-xs space-y-1.5 leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
+          <li>
+            <strong>Ollama Cloud</strong> — Chat, thinking, web search, vision & tool calling.
+          </li>
+          <li>
+            <strong>Google Gemini</strong> — Chat, thinking levels, vision & tool calling.
+          </li>
+          <li>
+            <strong>Cloudflare Workers AI</strong> — Image generation.
+          </li>
         </ul>
       </div>
     </div>

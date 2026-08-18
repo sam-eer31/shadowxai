@@ -87,7 +87,7 @@ export class GeminiProvider implements AIProvider {
           vision: true,
           toolCalling: true,
           imageGeneration: false,
-          thinking: 'none',
+          thinking: 'levels',
         },
       },
       {
