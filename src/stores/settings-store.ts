@@ -98,8 +98,43 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
 
   setCredential: (provider, value) => {
     const creds = { ...get().credentials, [provider]: value };
-    set({ credentials: creds });
+    const stateUpdate: Partial<SettingsState> = { credentials: creds };
+
+    // Auto-select provider based on keys
+    const hasOllama = !!creds.ollama?.apiKey;
+    const hasGemini = !!creds.gemini?.apiKey;
+    
+    let nextProvider = get().activeProvider;
+    if (hasOllama && !hasGemini) {
+      nextProvider = 'ollama';
+    } else if (hasGemini) {
+      nextProvider = 'gemini';
+    }
+    stateUpdate.activeProvider = nextProvider;
+    
+    // Auto-select default models if not selected
+    const selectedModels = { ...get().selectedModels };
+    let modelsChanged = false;
+    
+    if (nextProvider === 'ollama' && !selectedModels['ollama']) {
+      selectedModels['ollama'] = 'gemma4:cloud';
+      modelsChanged = true;
+    }
+    if (nextProvider === 'gemini' && !selectedModels['gemini']) {
+      selectedModels['gemini'] = 'gemini-2.5-flash-lite';
+      modelsChanged = true;
+    }
+    
+    if (modelsChanged) {
+      stateUpdate.selectedModels = selectedModels;
+    }
+
+    set(stateUpdate);
     localStorage.setItem('shadow-credentials', JSON.stringify(creds));
+    
+    if (stateUpdate.activeProvider !== get().activeProvider || modelsChanged) {
+      persistSettings(get());
+    }
   },
 
   removeCredential: (provider) => {
@@ -170,6 +205,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
 function applyTheme(theme: ThemeMode) {
   if (typeof document === 'undefined') return;
   const html = document.documentElement;
+  localStorage.setItem('shadow_theme', theme);
   if (theme === 'system') {
     const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
     html.classList.toggle('dark', isDark);

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Sidebar } from '@/components/sidebar/Sidebar';
 import { ChatArea } from '@/components/chat/ChatArea';
 import { SettingsModal } from '@/components/settings/SettingsModal';
@@ -12,15 +12,26 @@ import { useUIStore } from '@/stores/ui-store';
 
 export default function Home() {
   const initSettings = useSettingsStore((s) => s.initialize);
+  const settingsInitialized = useSettingsStore((s) => s.initialized);
+  
   const initChat = useChatStore((s) => s.initialize);
+  const chatInitialized = useChatStore((s) => s.initialized);
+  
   const settingsOpen = useUIStore((s) => s.settingsOpen);
   const toolsOpen = useUIStore((s) => s.toolsMarketplaceOpen);
   const sidebarOpen = useUIStore((s) => s.sidebarOpen);
 
+  const initUI = useUIStore((s) => s.initializeUI);
+  const [mounted, setMounted] = useState(false);
+
   useEffect(() => {
     initSettings();
     initChat();
-  }, [initSettings, initChat]);
+    initUI();
+    setMounted(true);
+  }, [initSettings, initChat, initUI]);
+
+  if (!mounted || !settingsInitialized || !chatInitialized) return null;
 
   return (
     <div className="absolute inset-0 flex overflow-hidden">

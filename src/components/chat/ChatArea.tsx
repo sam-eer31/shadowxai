@@ -110,7 +110,7 @@ export function ChatArea() {
     <div className="flex flex-col h-full w-full relative min-w-0" style={{ background: 'var(--bg-primary)' }}>
       {/* Header */}
       <header
-        className="flex items-center px-3 sm:px-4 py-2.5 sm:py-3 border-b shrink-0 z-10 pt-[max(0.6rem,env(safe-area-inset-top))]"
+        className="flex lg:hidden items-center px-3 sm:px-4 py-2.5 sm:py-3 border-b shrink-0 z-10 pt-[max(0.6rem,env(safe-area-inset-top))]"
         style={{ borderColor: 'var(--border)', background: 'var(--bg-primary)' }}
       >
         <ChatHeader conversation={conv} />

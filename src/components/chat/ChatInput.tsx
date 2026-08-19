@@ -378,7 +378,7 @@ export function ChatInput() {
                   className="w-9 h-9 sm:w-8 sm:h-8 rounded-xl transition-all duration-150 active:scale-95 disabled:opacity-30 flex items-center justify-center shrink-0 shadow-sm"
                   style={{
                     background: 'var(--accent)',
-                    color: 'white',
+                    color: 'var(--bg-primary)',
                   }}
                   title="Send message"
                   aria-label="Send message"

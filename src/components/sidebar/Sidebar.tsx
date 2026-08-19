@@ -141,7 +141,7 @@ export function Sidebar() {
         borderRight: sidebarOpen || !isMobile ? '1px solid var(--border)' : 'none',
       }}
     >
-      <div className="flex flex-col h-full w-[260px] pt-[max(0.5rem,env(safe-area-inset-top))] pb-[max(0.5rem,env(safe-area-inset-bottom))]">
+      <div className="flex flex-col h-full w-[85vw] max-w-[300px] lg:w-[260px] pt-[max(0.5rem,env(safe-area-inset-top))] pb-[max(0.5rem,env(safe-area-inset-bottom))]">
         {/* Top Header */}
         <div
           className="flex items-center justify-between h-14 shrink-0 px-2.5 border-b lg:border-none"
@@ -167,18 +167,6 @@ export function Sidebar() {
               </span>
             </div>
           </div>
-
-          {/* Close button on mobile */}
-          {isMobile && sidebarOpen && (
-            <button
-              onClick={() => setSidebarOpen(false)}
-              className="w-9 h-9 flex items-center justify-center rounded-lg hover:bg-black/10 dark:hover:bg-white/10 active:scale-90 transition-transform mr-1"
-              style={{ color: 'var(--text-secondary)' }}
-              aria-label="Close menu"
-            >
-              <X size={18} />
-            </button>
-          )}
         </div>
 
         {/* Action Items (New Chat, Search) */}

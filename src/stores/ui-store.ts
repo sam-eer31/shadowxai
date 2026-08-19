@@ -16,6 +16,7 @@ interface UIState {
   closeToolsMarketplace: () => void;
   addToast: (toast: Omit<Toast, 'id'>) => void;
   removeToast: (id: string) => void;
+  initializeUI: () => void;
 }
 
 export interface Toast {
@@ -32,8 +33,15 @@ export const useUIStore = create<UIState>((set) => ({
   toolsMarketplaceOpen: false,
   toasts: [],
 
-  toggleSidebar: () => set((s) => ({ sidebarOpen: !s.sidebarOpen })),
-  setSidebarOpen: (open) => set({ sidebarOpen: open }),
+  toggleSidebar: () => set((s) => {
+    const newOpen = !s.sidebarOpen;
+    if (typeof window !== 'undefined') localStorage.setItem('shadow_sidebar', String(newOpen));
+    return { sidebarOpen: newOpen };
+  }),
+  setSidebarOpen: (open) => {
+    if (typeof window !== 'undefined') localStorage.setItem('shadow_sidebar', String(open));
+    set({ sidebarOpen: open });
+  },
 
   openSettings: (tab) =>
     set({ settingsOpen: true, settingsTab: tab || 'providers' }),
@@ -55,4 +63,11 @@ export const useUIStore = create<UIState>((set) => ({
 
   removeToast: (id) =>
     set((s) => ({ toasts: s.toasts.filter((t) => t.id !== id) })),
+
+  initializeUI: () => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('shadow_sidebar');
+      if (saved === 'false') set({ sidebarOpen: false });
+    }
+  },
 }));

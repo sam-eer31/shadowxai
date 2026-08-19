@@ -83,17 +83,21 @@ export const useChatStore = create<ChatState>((set, get) => ({
     if (get().initialized) return;
     try {
       const conversations = await getAllConversations();
-      set({ conversations, initialized: true });
+      const lastActiveId = localStorage.getItem('shadow_active_chat');
+      const activeId = conversations.some(c => c.id === lastActiveId) ? lastActiveId : null;
+      set({ conversations, activeConversationId: activeId, initialized: true });
     } catch {
       set({ initialized: true });
     }
   },
 
   newChat: () => {
+    localStorage.removeItem('shadow_active_chat');
     set({ activeConversationId: null, streamingContent: '', streamingThought: '', thoughtTimeMs: 0 });
   },
 
   setActiveConversation: (id) => {
+    localStorage.setItem('shadow_active_chat', id);
     set({ activeConversationId: id, streamingContent: '', streamingThought: '', thoughtTimeMs: 0 });
   },
 

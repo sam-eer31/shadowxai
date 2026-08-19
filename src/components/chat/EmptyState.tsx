@@ -59,9 +59,10 @@ export function EmptyState() {
             </p>
             <button
               onClick={() => openSettings('providers')}
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold transition-all hover:scale-105 active:scale-95 text-white shadow-sm"
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold transition-all hover:scale-105 active:scale-95 shadow-sm"
               style={{
                 background: 'var(--accent)',
+                color: 'var(--bg-primary)',
               }}
             >
               <Settings size={14} />
@@ -72,7 +73,7 @@ export function EmptyState() {
 
         {/* Suggestions */}
         {isConfigured && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
+          <div className="hidden sm:grid sm:grid-cols-2 gap-2 sm:gap-3">
             {SUGGESTIONS.map((s, i) => (
               <button
                 key={i}

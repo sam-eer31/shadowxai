@@ -35,7 +35,7 @@ export function ToolCard({ tool, enabled, onToggle }: ToolCardProps) {
           background: enabled
             ? 'var(--accent)'
             : 'var(--bg-tertiary)',
-          color: enabled ? 'white' : 'var(--text-secondary)',
+          color: enabled ? 'var(--bg-primary)' : 'var(--text-secondary)',
         }}
       >
         <Icon size={18} />
@@ -83,8 +83,9 @@ export function ToolCard({ tool, enabled, onToggle }: ToolCardProps) {
         aria-label={`Toggle ${tool.name}`}
       >
         <div
-          className="absolute top-1 w-5 h-5 rounded-full bg-white shadow-md transition-transform duration-200"
+          className="absolute top-1 w-5 h-5 rounded-full shadow-md transition-transform duration-200"
           style={{
+            background: 'var(--bg-primary)',
             transform: enabled ? 'translateX(24px)' : 'translateX(4px)',
           }}
         />
