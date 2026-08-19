@@ -64,6 +64,7 @@ export interface Message {
   provider?: ProviderType;
   createdAt: number;
   isStreaming?: boolean;
+  parentId?: string;
 }
 
 // --- Conversation ---
@@ -76,6 +77,7 @@ export interface Conversation {
   provider: ProviderType;
   model: string;
   messages: Message[];
+  currentNodeId?: string;
 }
 
 // --- Tool System ---

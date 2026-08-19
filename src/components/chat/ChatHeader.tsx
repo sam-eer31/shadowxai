@@ -26,10 +26,7 @@ export function ChatHeader({ conversation: _conversation }: ChatHeaderProps) {
       <div className="flex items-center gap-1 sm:gap-2 min-w-0">
         <button
           onClick={toggleSidebar}
-          className={`
-            p-2 rounded-xl transition-all duration-150 hover:bg-black/10 dark:hover:bg-white/10 active:scale-95
-            ${sidebarOpen ? 'lg:hidden' : 'flex'}
-          `}
+          className="p-2 rounded-xl transition-all duration-150 hover:bg-black/10 dark:hover:bg-white/10 active:scale-95 flex lg:hidden"
           style={{ color: 'var(--text-secondary)' }}
           aria-label={sidebarOpen ? 'Close sidebar' : 'Open sidebar'}
         >
@@ -54,7 +51,7 @@ export function ChatHeader({ conversation: _conversation }: ChatHeaderProps) {
           style={{
             background: 'var(--accent-light)',
             color: 'var(--accent)',
-            border: '1px solid rgba(99, 102, 241, 0.2)',
+            border: '1px solid rgba(249, 109, 0, 0.2)',
           }}
         >
           <Sparkles size={12} className="shrink-0" />

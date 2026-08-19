@@ -2,7 +2,7 @@
 
 import { useRef, useEffect, useState, useCallback } from 'react';
 import { ChevronDown } from 'lucide-react';
-import { useChatStore } from '@/stores/chat-store';
+import { useChatStore, getActiveMessages } from '@/stores/chat-store';
 
 import { ChatHeader } from './ChatHeader';
 import { MessageBubble } from './MessageBubble';
@@ -20,6 +20,7 @@ export function ChatArea() {
   const pendingToolCalls = useChatStore((s) => s.pendingToolCalls);
 
   const conv = conversations.find((c) => c.id === activeId);
+  const activeMessages = conv ? getActiveMessages(conv) : [];
   const containerRef = useRef<HTMLDivElement>(null);
   const innerContentRef = useRef<HTMLDivElement>(null);
 
@@ -49,7 +50,7 @@ export function ChatArea() {
       scrollToBottom(false);
     }, 50);
     return () => clearTimeout(timer);
-  }, [activeId, conv?.messages.length, scrollToBottom]);
+  }, [activeId, activeMessages.length, scrollToBottom]);
 
   // While generating, continuously keep viewport at bottom at 60fps if user hasn't scrolled up
   useEffect(() => {
@@ -128,7 +129,7 @@ export function ChatArea() {
             onScroll={handleScroll}
           >
             <div ref={innerContentRef} className="max-w-3xl mx-auto px-3 sm:px-6 py-4 sm:py-6 w-full">
-              {conv.messages.map((msg) => (
+              {activeMessages.map((msg) => (
                 <MessageBubble key={msg.id} message={msg} allMessages={conv.messages} />
               ))}
 

@@ -1,5 +1,7 @@
 'use client';
 
+import Image from 'next/image';
+
 import { Sparkles, Zap, Globe, Image as ImageIcon, Calculator, Settings } from 'lucide-react';
 import { useChatStore } from '@/stores/chat-store';
 import { useSettingsStore } from '@/stores/settings-store';
@@ -27,13 +29,8 @@ export function EmptyState() {
       <div className="max-w-lg w-full animate-fade-in py-4">
         {/* Logo */}
         <div className="text-center mb-6 sm:mb-8">
-          <div
-            className="w-13 h-13 sm:w-16 sm:h-16 rounded-2xl mx-auto mb-3 sm:mb-4 flex items-center justify-center shadow-lg"
-            style={{
-              background: 'linear-gradient(135deg, #6366f1, #8b5cf6, #a855f7)',
-            }}
-          >
-            <Zap size={26} className="text-white" />
+          <div className="mx-auto mb-4 sm:mb-5 flex items-center justify-center">
+            <Image src="/logo.svg" alt="Logo" width={64} height={64} className="w-14 h-14 sm:w-16 sm:h-16 drop-shadow-lg" />
           </div>
           <h2 className="text-xl sm:text-2xl font-bold mb-1.5 sm:mb-2 tracking-tight" style={{ color: 'var(--text-primary)' }}>
             Welcome to Shadow
@@ -64,7 +61,7 @@ export function EmptyState() {
               onClick={() => openSettings('providers')}
               className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold transition-all hover:scale-105 active:scale-95 text-white shadow-sm"
               style={{
-                background: 'linear-gradient(135deg, var(--accent), #8b5cf6)',
+                background: 'var(--accent)',
               }}
             >
               <Settings size={14} />

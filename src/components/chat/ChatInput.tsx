@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useCallback, useEffect, type KeyboardEvent, type DragEvent } from 'react';
-import { Send, Square, ImagePlus, X, Wrench, ChevronDown, Brain, Sparkles, Check } from 'lucide-react';
+import { ArrowUp, Square, ImagePlus, X, Wrench, ChevronDown, Brain, Sparkles, Check } from 'lucide-react';
 import { useChatStore } from '@/stores/chat-store';
 import { useSettingsStore } from '@/stores/settings-store';
 import { useUIStore } from '@/stores/ui-store';
@@ -377,13 +377,13 @@ export function ChatInput() {
                   disabled={!text.trim() && attachments.length === 0}
                   className="w-9 h-9 sm:w-8 sm:h-8 rounded-xl transition-all duration-150 active:scale-95 disabled:opacity-30 flex items-center justify-center shrink-0 shadow-sm"
                   style={{
-                    background: 'linear-gradient(135deg, var(--accent), #8b5cf6)',
+                    background: 'var(--accent)',
                     color: 'white',
                   }}
                   title="Send message"
                   aria-label="Send message"
                 >
-                  <Send size={15} />
+                  <ArrowUp size={16} strokeWidth={2.5} />
                 </button>
               )}
             </div>

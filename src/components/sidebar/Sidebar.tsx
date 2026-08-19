@@ -1,5 +1,7 @@
 'use client';
 
+import Image from 'next/image';
+
 import { useState, useMemo, useEffect, useRef } from 'react';
 import {
   Search,
@@ -155,14 +157,15 @@ export function Sidebar() {
             >
               {sidebarOpen ? <PanelLeftClose size={19} /> : <PanelLeftOpen size={19} />}
             </button>
-            <span
-              className={`font-semibold text-base tracking-tight truncate ml-2.5 transition-opacity duration-200 ${
-                sidebarOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
-              }`}
-              style={{ color: 'var(--text-primary)' }}
-            >
-              Shadow
-            </span>
+            <div className={`flex items-center ml-2.5 transition-opacity duration-200 ${sidebarOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
+              <Image src="/logo.svg" alt="Logo" width={22} height={22} className="shrink-0 drop-shadow-sm" />
+              <span
+                className="font-semibold text-base tracking-tight truncate ml-2"
+                style={{ color: 'var(--text-primary)' }}
+              >
+                Shadow
+              </span>
+            </div>
           </div>
 
           {/* Close button on mobile */}

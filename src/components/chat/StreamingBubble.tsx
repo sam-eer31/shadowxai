@@ -1,6 +1,8 @@
 'use client';
 
-import { Bot, ChevronDown, ChevronRight, Brain, Image as ImageIcon } from 'lucide-react';
+import Image from 'next/image';
+
+import { Bot, ChevronDown, ChevronRight, Brain, Lightbulb, Image as ImageIcon, Wrench, Loader2 } from 'lucide-react';
 import type { ToolCall } from '@/lib/types';
 import { MarkdownRenderer } from './MarkdownRenderer';
 import { useState } from 'react';
@@ -14,105 +16,113 @@ interface StreamingBubbleProps {
 
 export function StreamingBubble({ content, thought, thoughtTimeMs, toolCalls }: StreamingBubbleProps) {
   const [isExpanded, setIsExpanded] = useState(true);
+  const [isToolsExpanded, setIsToolsExpanded] = useState(true);
 
   return (
     <div className="mb-5 sm:mb-6 animate-fade-in">
       <div className="flex gap-2.5 sm:gap-3.5">
-        {/* Avatar */}
-        <div
-          className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl flex items-center justify-center shrink-0 mt-0.5 shadow-xs"
-          style={{
-            background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
-          }}
-        >
-          <Bot size={15} className="text-white" />
-        </div>
-
-        <div className="min-w-0 flex-1">
-          {/* Active tool calls */}
-          {toolCalls.length > 0 && (
-            <div className="flex flex-col gap-2.5 mb-2">
-              <div className="flex flex-wrap gap-1.5">
-                {toolCalls.map((tc, i) => (
-                  <div
-                    key={i}
-                    className="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg text-xs"
-                    style={{
-                      background: 'var(--accent-light)',
-                      color: 'var(--accent)',
-                    }}
-                  >
-                    <div className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ background: 'var(--accent)' }} />
-                    <span className="font-medium">
-                      {tc.name === 'web_search'
-                        ? 'Searching web...'
-                        : tc.name === 'calculator'
-                          ? 'Calculating...'
-                          : tc.name === 'weather'
-                            ? 'Getting weather...'
-                            : tc.name === 'image_generation'
-                              ? 'Generating image...'
-                              : `Using ${tc.name}...`}
-                    </span>
-                  </div>
-                ))}
-              </div>
-
-              {/* Skeleton loaders for pending images */}
-              {toolCalls
-                .filter((tc) => tc.name === 'image_generation')
-                .map((tc, i) => (
-                  <div key={`skeleton-${i}`} className="animate-fade-in w-full max-w-[260px] sm:max-w-sm">
-                    <div
-                      className="rounded-2xl overflow-hidden flex flex-col items-center justify-center gap-3 animate-pulse border aspect-square w-full shadow-xs"
-                      style={{ background: 'var(--bg-tertiary)', borderColor: 'var(--border)' }}
-                    >
-                      <ImageIcon size={28} style={{ color: 'var(--text-tertiary)' }} className="opacity-50" />
-                      <span className="text-xs font-medium" style={{ color: 'var(--text-secondary)' }}>
-                        Generating image...
-                      </span>
-                    </div>
-                  </div>
-                ))}
-            </div>
-          )}
-
+        <div className="min-w-0 flex-1 flex flex-col gap-2.5">
           {/* Streaming thought */}
           {thought && (
-            <div
-              className="mb-2.5 rounded-xl overflow-hidden border shadow-2xs"
-              style={{
-                borderColor: 'var(--border)',
-                background: 'var(--bg-secondary)',
-              }}
-            >
+            <div>
               <button
                 onClick={() => setIsExpanded(!isExpanded)}
-                className="w-full flex items-center justify-between px-3.5 py-2 text-xs font-medium hover:bg-black/5 dark:hover:bg-white/5 active:bg-black/10 dark:active:bg-white/10 transition-colors"
+                className="flex items-center gap-2 text-xs font-bold transition-opacity hover:opacity-80"
                 style={{ color: 'var(--text-secondary)' }}
               >
-                <div className="flex items-center gap-2">
-                  <Brain size={14} className={!content ? 'animate-pulse' : ''} style={{ color: 'var(--accent)' }} />
+                <div className="flex items-center gap-1.5">
+                  <Lightbulb size={14} className={!content ? 'animate-pulse' : ''} />
                   <span>
-                    Thinking... {thoughtTimeMs ? `(${(thoughtTimeMs / 1000).toFixed(1)}s)` : ''}
+                    {content ? 'Reasoned' : 'Reasoning...'} {thoughtTimeMs ? `for ${(thoughtTimeMs / 1000).toFixed(1)}s` : ''}
                   </span>
                 </div>
-                {isExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                {isExpanded ? <ChevronDown size={14} className="opacity-60" /> : <ChevronRight size={14} className="opacity-60" />}
               </button>
 
               {isExpanded && (
                 <div
-                  className="px-3.5 py-2.5 text-xs sm:text-sm border-t"
+                  className="mt-2.5 ml-[6px] pl-3.5 border-l-2 text-xs sm:text-sm"
                   style={{
                     borderColor: 'var(--border)',
                     color: 'var(--text-secondary)',
-                    background: 'var(--bg-tertiary)',
                   }}
                 >
-                  <div className="whitespace-pre-wrap leading-relaxed">
+                  <div className="whitespace-pre-wrap leading-relaxed opacity-80">
                     {thought}
                     {!content && <span className="streaming-cursor ml-1" />}
                   </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Active tool calls */}
+          {toolCalls.length > 0 && (
+            <div>
+              <button
+                onClick={() => setIsToolsExpanded(!isToolsExpanded)}
+                className="flex items-center gap-2 text-xs font-bold transition-opacity hover:opacity-80"
+                style={{ color: 'var(--text-secondary)' }}
+              >
+                <div className="flex items-center gap-1.5">
+                  <Wrench size={14} />
+                  <span>Using {toolCalls.length} tool{toolCalls.length !== 1 ? 's' : ''}</span>
+                </div>
+                {isToolsExpanded ? <ChevronDown size={14} className="opacity-60" /> : <ChevronRight size={14} className="opacity-60" />}
+              </button>
+
+              {isToolsExpanded && (
+                <div className="mt-3 ml-1 relative flex flex-col gap-0">
+                  {/* Vertical connecting line */}
+                  <div 
+                    className="absolute left-[11px] top-3 bottom-3 w-[2px] rounded-full z-0" 
+                    style={{ background: 'var(--border)' }} 
+                  />
+                  
+                  {toolCalls.map((tc, i) => (
+                    <div key={i} className="flex items-center gap-3 relative z-10 py-1.5">
+                      <div 
+                        className="w-6 h-6 flex items-center justify-center rounded-full"
+                        style={{ background: 'var(--bg-primary)' }}
+                      >
+                        <div 
+                          className="w-5 h-5 flex items-center justify-center rounded-full"
+                          style={{ background: 'var(--bg-tertiary)', color: 'var(--text-tertiary)' }}
+                        >
+                          <Loader2 size={12} className="animate-spin" />
+                        </div>
+                      </div>
+                      
+                      <span className="text-xs font-medium" style={{ color: 'var(--text-secondary)' }}>
+                        {tc.name === 'web_search'
+                          ? 'Searching web...'
+                          : tc.name === 'calculator'
+                            ? 'Calculating...'
+                            : tc.name === 'weather'
+                              ? 'Getting weather...'
+                              : tc.name === 'image_generation'
+                                ? 'Generating image...'
+                                : `Using ${tc.name}...`}
+                      </span>
+                    </div>
+                  ))}
+
+                  {/* Skeleton loaders for pending images */}
+                  {toolCalls
+                    .filter((tc) => tc.name === 'image_generation')
+                    .map((tc, i) => (
+                      <div key={`skeleton-${i}`} className="animate-fade-in w-full max-w-[260px] sm:max-w-sm ml-2 mt-2">
+                        <div
+                          className="rounded-2xl overflow-hidden flex flex-col items-center justify-center gap-3 animate-pulse border aspect-square w-full shadow-xs"
+                          style={{ background: 'var(--bg-tertiary)', borderColor: 'var(--border)' }}
+                        >
+                          <ImageIcon size={28} style={{ color: 'var(--text-tertiary)' }} className="opacity-50" />
+                          <span className="text-xs font-medium" style={{ color: 'var(--text-secondary)' }}>
+                            Generating image...
+                          </span>
+                        </div>
+                      </div>
+                    ))}
                 </div>
               )}
             </div>
