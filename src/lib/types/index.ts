@@ -179,6 +179,7 @@ export interface ProviderCredentials {
   ollama?: { apiKey: string };
   gemini?: { apiKey: string };
   cloudflare?: { accountId: string; apiToken: string };
+  tavily?: { apiKey: string };
 }
 
 export type ThemeMode = 'light' | 'dark' | 'system';

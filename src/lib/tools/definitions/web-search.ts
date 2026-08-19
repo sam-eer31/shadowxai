@@ -1,9 +1,10 @@
 import type { ToolDefinition, ToolResult } from '@/lib/types';
+import { useSettingsStore } from '@/stores/settings-store';
 
 export const webSearchTool: ToolDefinition = {
   name: 'web_search',
   description:
-    'Search the web for current information using DuckDuckGo. Returns relevant web results with titles, URLs, and content snippets.',
+    'Search the web for current information using Tavily Search API. Returns relevant web results with titles, URLs, and content snippets.',
   icon: 'globe',
   category: 'Search',
   inputSchema: {
@@ -27,11 +28,21 @@ export const webSearchTool: ToolDefinition = {
       };
     }
 
+    const apiKey = useSettingsStore.getState().credentials.tavily?.apiKey;
+    if (!apiKey) {
+      return {
+        toolCallId: '',
+        name: 'web_search',
+        result: 'Tavily API key is missing. Please add it in Settings > Providers.',
+        isError: true,
+      };
+    }
+
     try {
       const res = await fetch('/api/tools/websearch', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query }),
+        body: JSON.stringify({ query, apiKey }),
       });
 
       if (!res.ok) {
