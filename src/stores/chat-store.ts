@@ -21,22 +21,26 @@ import { useSettingsStore } from './settings-store';
 import { useUIStore } from './ui-store';
 import { generateResponse } from '@/lib/chat/generation';
 
-interface ChatState {
-  conversations: Conversation[];
-  activeConversationId: string | null;
+export interface GenerationState {
   isGenerating: boolean;
   streamingContent: string;
   streamingThought: string;
   thoughtTimeMs: number;
   pendingToolCalls: ToolCall[];
   abortController: AbortController | null;
+}
+
+interface ChatState {
+  conversations: Conversation[];
+  activeConversationId: string | null;
+  generations: Record<string, GenerationState>;
   initialized: boolean;
   // Actions
   initialize: () => Promise<void>;
   newChat: () => void;
   setActiveConversation: (id: string) => void;
   sendMessage: (text: string, attachments?: Attachment[]) => Promise<void>;
-  stopGeneration: () => void;
+  stopGeneration: (conversationId?: string) => void;
   regenerateMessage: (messageId: string) => Promise<void>;
   editMessage: (messageId: string, text: string) => Promise<void>;
   switchToBranch: (messageId: string) => Promise<void>;
@@ -71,12 +75,7 @@ export function getActiveMessages(conv: Conversation): Message[] {
 export const useChatStore = create<ChatState>((set, get) => ({
   conversations: [],
   activeConversationId: null,
-  isGenerating: false,
-  streamingContent: '',
-  streamingThought: '',
-  thoughtTimeMs: 0,
-  pendingToolCalls: [],
-  abortController: null,
+  generations: {},
   initialized: false,
 
   initialize: async () => {
@@ -93,12 +92,12 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
   newChat: () => {
     localStorage.removeItem('shadow_active_chat');
-    set({ activeConversationId: null, streamingContent: '', streamingThought: '', thoughtTimeMs: 0 });
+    set({ activeConversationId: null });
   },
 
   setActiveConversation: (id) => {
     localStorage.setItem('shadow_active_chat', id);
-    set({ activeConversationId: id, streamingContent: '', streamingThought: '', thoughtTimeMs: 0 });
+    set({ activeConversationId: id });
   },
 
   getActiveConversation: () => {
@@ -191,6 +190,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
       conversations: [conv, ...conversations],
       activeConversationId: conv.id,
     });
+    localStorage.setItem('shadow_active_chat', conv.id);
 
     // Save to DB
     await saveConversation(conv);
@@ -199,11 +199,27 @@ export const useChatStore = create<ChatState>((set, get) => ({
     await generateResponse(conv, settings, provider, modelId);
   },
 
-  stopGeneration: () => {
-    const { abortController } = get();
-    if (abortController) {
-      abortController.abort();
-      set({ isGenerating: false, abortController: null, streamingContent: '', streamingThought: '', thoughtTimeMs: 0 });
+  stopGeneration: (conversationId?: string) => {
+    const targetId = conversationId || get().activeConversationId;
+    if (!targetId) return;
+    
+    const genState = get().generations[targetId];
+    if (genState?.abortController) {
+      genState.abortController.abort();
+      set((state) => {
+        const nextGens = { ...state.generations };
+        if (nextGens[targetId]) {
+          nextGens[targetId] = {
+            ...nextGens[targetId],
+            isGenerating: false,
+            abortController: null,
+            streamingContent: '',
+            streamingThought: '',
+            thoughtTimeMs: 0
+          };
+        }
+        return { generations: nextGens };
+      });
     }
   },
 
@@ -299,6 +315,13 @@ export const useChatStore = create<ChatState>((set, get) => ({
     const conversations = get().conversations.filter((c) => c.id !== id);
     const activeId =
       get().activeConversationId === id ? null : get().activeConversationId;
+    
+    if (activeId) {
+      localStorage.setItem('shadow_active_chat', activeId);
+    } else {
+      localStorage.removeItem('shadow_active_chat');
+    }
+    
     set({ conversations, activeConversationId: activeId });
   },
 
@@ -315,6 +338,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
   clearAll: async () => {
     await clearAllConversations();
+    localStorage.removeItem('shadow_active_chat');
     set({ conversations: [], activeConversationId: null });
   },
 }));

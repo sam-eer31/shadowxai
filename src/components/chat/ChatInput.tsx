@@ -23,7 +23,8 @@ export function ChatInput() {
 
   const sendMessage = useChatStore((s) => s.sendMessage);
   const stopGeneration = useChatStore((s) => s.stopGeneration);
-  const isGenerating = useChatStore((s) => s.isGenerating);
+  const activeId = useChatStore((s) => s.activeConversationId);
+  const isGenerating = useChatStore((s) => activeId ? s.generations[activeId]?.isGenerating : false);
   const activeProvider = useSettingsStore((s) => s.activeProvider);
   const selectedModels = useSettingsStore((s) => s.selectedModels);
   const enabledTools = useSettingsStore((s) => s.enabledTools);
@@ -367,7 +368,7 @@ export function ChatInput() {
             <div className="shrink-0">
               {isGenerating ? (
                 <button
-                  onClick={stopGeneration}
+                  onClick={() => stopGeneration()}
                   className="w-9 h-9 sm:w-8 sm:h-8 rounded-xl transition-all duration-150 active:scale-90 flex items-center justify-center shrink-0 shadow-sm"
                   style={{
                     background: 'var(--error)',

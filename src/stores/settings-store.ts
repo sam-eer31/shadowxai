@@ -104,29 +104,19 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
     const creds = { ...get().credentials, [provider]: value };
     const stateUpdate: Partial<SettingsState> = { credentials: creds };
 
-    // Auto-select provider based on keys
-    const hasOllama = !!creds.ollama?.apiKey;
-    const ollamaEnabled = !!creds.ollama?.enabled;
-    const hasPuter = !!creds.puter?.signedIn;
-    
-    let nextProvider = get().activeProvider;
-    if (hasOllama && ollamaEnabled) {
-      nextProvider = 'ollama';
-    } else {
-      nextProvider = 'puter';
-    }
-    stateUpdate.activeProvider = nextProvider;
+    // We no longer aggressively auto-switch activeProvider here.
+    // The user explicitly selects their provider/model from the ModelSelector UI.
     
     // Auto-select default models if not selected
     const selectedModels = { ...get().selectedModels };
     let modelsChanged = false;
     
-    if (nextProvider === 'ollama' && !selectedModels['ollama']) {
+    if (provider === 'ollama' && !selectedModels['ollama']) {
       selectedModels['ollama'] = 'gemma4:cloud';
       modelsChanged = true;
     }
-    if (nextProvider === 'puter' && !selectedModels['puter']) {
-      selectedModels['puter'] = 'gpt-5.6-luna';
+    if (provider === 'puter' && !selectedModels['puter']) {
+      selectedModels['puter'] = 'deepseek-v4-flash';
       modelsChanged = true;
     }
     
@@ -137,7 +127,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
     set(stateUpdate);
     localStorage.setItem('shadow-credentials', JSON.stringify(creds));
     
-    if (stateUpdate.activeProvider !== get().activeProvider || modelsChanged) {
+    if (modelsChanged) {
       persistSettings(get());
     }
   },

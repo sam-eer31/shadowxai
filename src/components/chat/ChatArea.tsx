@@ -13,11 +13,13 @@ import { StreamingBubble } from './StreamingBubble';
 export function ChatArea() {
   const conversations = useChatStore((s) => s.conversations);
   const activeId = useChatStore((s) => s.activeConversationId);
-  const isGenerating = useChatStore((s) => s.isGenerating);
-  const streamingContent = useChatStore((s) => s.streamingContent);
-  const streamingThought = useChatStore((s) => s.streamingThought);
-  const thoughtTimeMs = useChatStore((s) => s.thoughtTimeMs);
-  const pendingToolCalls = useChatStore((s) => s.pendingToolCalls);
+  const genState = useChatStore((s) => activeId ? s.generations[activeId] : null);
+  
+  const isGenerating = genState?.isGenerating ?? false;
+  const streamingContent = genState?.streamingContent ?? '';
+  const streamingThought = genState?.streamingThought ?? '';
+  const thoughtTimeMs = genState?.thoughtTimeMs ?? 0;
+  const pendingToolCalls = genState?.pendingToolCalls ?? [];
 
   const conv = conversations.find((c) => c.id === activeId);
   const activeMessages = conv ? getActiveMessages(conv) : [];

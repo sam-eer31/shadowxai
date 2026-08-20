@@ -15,6 +15,7 @@ import {
   MoreVertical,
   Edit3,
   Check,
+  Loader2,
 } from 'lucide-react';
 import { useChatStore } from '@/stores/chat-store';
 import { useUIStore } from '@/stores/ui-store';
@@ -60,6 +61,7 @@ export function Sidebar() {
   const [activeMenuId, setActiveMenuId] = useState<string | null>(null);
   const conversations = useChatStore((s) => s.conversations);
   const activeId = useChatStore((s) => s.activeConversationId);
+  const generations = useChatStore((s) => s.generations);
   const newChat = useChatStore((s) => s.newChat);
   const setActive = useChatStore((s) => s.setActiveConversation);
   const deleteConv = useChatStore((s) => s.deleteConversation);
@@ -264,6 +266,7 @@ export function Sidebar() {
                   {items.map((conv) => {
                     const isSelected = activeId === conv.id;
                     const isMenuOpen = activeMenuId === conv.id;
+                    const isGenerating = generations[conv.id]?.isGenerating;
 
                     return (
                       <div
@@ -308,7 +311,12 @@ export function Sidebar() {
                             </button>
                           </div>
                         ) : (
-                          <span className="flex-1 text-sm truncate pr-6">{conv.title}</span>
+                          <div className="flex-1 flex items-center min-w-0 pr-6 gap-2">
+                            <span className="text-sm truncate">{conv.title}</span>
+                            {isGenerating && (
+                              <Loader2 size={12} className="animate-spin shrink-0 text-emerald-500" />
+                            )}
+                          </div>
                         )}
 
                         {/* Mobile and Desktop Action buttons */}

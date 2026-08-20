@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Check, Loader2, X, Sparkles, Brain, Eye, Wrench, Zap } from 'lucide-react';
 import { useSettingsStore } from '@/stores/settings-store';
-import { getChatProvider } from '@/lib/providers';
+import { getAllChatProviders } from '@/lib/providers';
 import type { AIModel } from '@/lib/types';
 
 interface ModelSelectorProps {
@@ -22,27 +22,30 @@ export function ModelSelector({ onClose }: ModelSelectorProps) {
 
   useEffect(() => {
     let isCancelled = false;
-    const targetProvider = activeProvider;
 
     const loadModels = async () => {
       setLoading(true);
       setModels([]);
 
-      const provider = getChatProvider(targetProvider);
-      if (provider && provider.isConfigured()) {
-        try {
-          const m = await provider.listModels();
-          if (!isCancelled) {
-            setModels(m);
-            setLoading(false);
-          }
-        } catch {
-          if (!isCancelled) {
-            setModels([]);
-            setLoading(false);
+      try {
+        const providers = getAllChatProviders().filter((p) => p.isConfigured());
+        
+        let allModels: AIModel[] = [];
+        
+        for (const provider of providers) {
+          try {
+            const m = await provider.listModels();
+            allModels = [...allModels, ...m.map((model) => ({ ...model, provider: provider.type }))];
+          } catch (e) {
+            console.error(`Failed to load models for ${provider.name}:`, e);
           }
         }
-      } else {
+        
+        if (!isCancelled) {
+          setModels(allModels);
+          setLoading(false);
+        }
+      } catch (err) {
         if (!isCancelled) {
           setModels([]);
           setLoading(false);
@@ -55,7 +58,7 @@ export function ModelSelector({ onClose }: ModelSelectorProps) {
     return () => {
       isCancelled = true;
     };
-  }, [activeProvider]);
+  }, []);
 
   return (
     <>
@@ -105,7 +108,7 @@ export function ModelSelector({ onClose }: ModelSelectorProps) {
         </div>
 
         {/* Model list */}
-        <div className="flex-1 overflow-y-auto p-2 space-y-1 max-h-[380px]">
+        <div className="flex-1 overflow-y-auto p-3 space-y-4 max-h-[420px]">
           {loading ? (
             <div className="flex flex-col items-center justify-center py-12">
               <Loader2 size={24} className="animate-spin" style={{ color: 'var(--accent)' }} />
@@ -116,95 +119,114 @@ export function ModelSelector({ onClose }: ModelSelectorProps) {
           ) : models.length === 0 ? (
             <div className="py-10 px-4 text-center">
               <p className="text-xs leading-relaxed" style={{ color: 'var(--text-tertiary)' }}>
-                No models available for this provider.
+                No models available.
                 <br />
-                Please configure your API key in Settings.
+                Please configure at least one API provider in Settings.
               </p>
             </div>
           ) : (
-            models.map((model) => {
-              const isCurrent = selectedModels[activeProvider] === model.id;
-              return (
-                <button
-                  key={model.id}
-                  onClick={() => {
-                    setSelectedModel(activeProvider, model.id);
-                    onClose();
-                  }}
-                  className={`
-                    w-full flex items-center justify-between p-3 rounded-xl text-left transition-all duration-150 border
-                    ${
-                      isCurrent
-                        ? 'bg-black/10 dark:bg-white/10'
-                        : 'hover:bg-black/5 dark:hover:bg-white/5 active:scale-[0.99]'
-                    }
-                  `}
-                  style={{
-                    borderColor: isCurrent ? 'var(--accent)' : 'transparent',
-                  }}
+            Object.entries(
+              models.reduce((acc, model) => {
+                if (!acc[model.provider]) acc[model.provider] = [];
+                acc[model.provider].push(model);
+                return acc;
+              }, {} as Record<string, AIModel[]>)
+            ).map(([providerType, providerModels]) => (
+              <div key={providerType}>
+                <div 
+                  className="text-[11px] font-bold uppercase tracking-wider mb-2 px-1" 
+                  style={{ color: 'var(--text-tertiary)' }}
                 >
-                  <div className="flex-1 min-w-0 pr-3">
-                    <div
-                      className={`text-sm font-medium truncate ${isCurrent ? 'font-semibold' : ''}`}
-                      style={{
-                        color: isCurrent ? 'var(--accent)' : 'var(--text-primary)',
-                      }}
-                    >
-                      {model.name}
-                    </div>
+                  {providerType === 'puter' ? 'Puter Cloud' : providerType === 'ollama' ? 'Ollama Local / Cloud' : providerType}
+                </div>
+                <div className="space-y-1">
+                  {providerModels.map((model) => {
+                    const isCurrent = activeProvider === model.provider && selectedModels[model.provider] === model.id;
+                    return (
+                      <button
+                        key={model.id}
+                        onClick={() => {
+                          setActiveProvider(model.provider);
+                          setSelectedModel(model.provider, model.id);
+                          onClose();
+                        }}
+                        className={`
+                          w-full flex items-center justify-between p-3 rounded-xl text-left transition-all duration-150 border
+                          ${
+                            isCurrent
+                              ? 'bg-black/10 dark:bg-white/10'
+                              : 'hover:bg-black/5 dark:hover:bg-white/5 active:scale-[0.99]'
+                          }
+                        `}
+                        style={{
+                          borderColor: isCurrent ? 'var(--accent)' : 'transparent',
+                        }}
+                      >
+                        <div className="flex-1 min-w-0 pr-3">
+                          <div
+                            className={`text-sm font-medium truncate ${isCurrent ? 'font-semibold' : ''}`}
+                            style={{
+                              color: isCurrent ? 'var(--accent)' : 'var(--text-primary)',
+                            }}
+                          >
+                            {model.name}
+                          </div>
 
-                    {/* Capabilities Tags */}
-                    <div className="flex flex-wrap gap-1.5 mt-1.5">
-                      {model.capabilities.thinking && model.capabilities.thinking !== 'none' && (
-                        <span
-                          className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-md font-medium"
-                          style={{ background: 'rgba(139, 92, 246, 0.15)', color: '#a78bfa' }}
-                        >
-                          <Brain size={10} />
-                          Thinking
-                        </span>
-                      )}
-                      {model.capabilities.vision && (
-                        <span
-                          className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-md font-medium"
-                          style={{ background: 'var(--accent-light)', color: 'var(--accent)' }}
-                        >
-                          <Eye size={10} />
-                          Vision
-                        </span>
-                      )}
-                      {model.capabilities.toolCalling && (
-                        <span
-                          className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-md font-medium"
-                          style={{ background: 'rgba(16, 185, 129, 0.15)', color: 'var(--success)' }}
-                        >
-                          <Wrench size={10} />
-                          Tools
-                        </span>
-                      )}
-                      {model.capabilities.streaming && (
-                        <span
-                          className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-md font-medium"
-                          style={{ background: 'rgba(245, 158, 11, 0.15)', color: 'var(--warning)' }}
-                        >
-                          <Zap size={10} />
-                          Stream
-                        </span>
-                      )}
-                    </div>
-                  </div>
+                          {/* Capabilities Tags */}
+                          <div className="flex flex-wrap gap-1.5 mt-1.5">
+                            {model.capabilities.thinking && model.capabilities.thinking !== 'none' && (
+                              <span
+                                className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-md font-medium"
+                                style={{ background: 'rgba(139, 92, 246, 0.15)', color: '#a78bfa' }}
+                              >
+                                <Brain size={10} />
+                                Thinking
+                              </span>
+                            )}
+                            {model.capabilities.vision && (
+                              <span
+                                className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-md font-medium"
+                                style={{ background: 'var(--accent-light)', color: 'var(--accent)' }}
+                              >
+                                <Eye size={10} />
+                                Vision
+                              </span>
+                            )}
+                            {model.capabilities.toolCalling && (
+                              <span
+                                className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-md font-medium"
+                                style={{ background: 'rgba(16, 185, 129, 0.15)', color: 'var(--success)' }}
+                              >
+                                <Wrench size={10} />
+                                Tools
+                              </span>
+                            )}
+                            {model.capabilities.streaming && (
+                              <span
+                                className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-md font-medium"
+                                style={{ background: 'rgba(245, 158, 11, 0.15)', color: 'var(--warning)' }}
+                              >
+                                <Zap size={10} />
+                                Stream
+                              </span>
+                            )}
+                          </div>
+                        </div>
 
-                  {isCurrent && (
-                    <div
-                      className="w-6 h-6 rounded-full flex items-center justify-center shrink-0"
-                      style={{ background: 'var(--accent-light)', color: 'var(--accent)' }}
-                    >
-                      <Check size={14} />
-                    </div>
-                  )}
-                </button>
-              );
-            })
+                        {isCurrent && (
+                          <div
+                            className="w-6 h-6 rounded-full flex items-center justify-center shrink-0"
+                            style={{ background: 'var(--accent-light)', color: 'var(--accent)' }}
+                          >
+                            <Check size={14} />
+                          </div>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            ))
           )}
         </div>
       </div>

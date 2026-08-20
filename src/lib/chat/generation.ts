@@ -29,7 +29,34 @@ export async function generateResponse(
   const store = useChatStore;
 
   const abortController = new AbortController();
-  store.setState({ isGenerating: true, abortController, streamingContent: '', streamingThought: '', thoughtTimeMs: 0 });
+  
+  const updateGenState = (updates: Partial<import('@/stores/chat-store').GenerationState>) => {
+    store.setState((state) => ({
+      generations: {
+        ...state.generations,
+        [conv.id]: {
+          ...(state.generations[conv.id] || {
+            isGenerating: false,
+            streamingContent: '',
+            streamingThought: '',
+            thoughtTimeMs: 0,
+            pendingToolCalls: [],
+            abortController: null,
+          }),
+          ...updates
+        }
+      }
+    }));
+  };
+
+  updateGenState({
+    isGenerating: true,
+    abortController,
+    streamingContent: '',
+    streamingThought: '',
+    thoughtTimeMs: 0,
+    pendingToolCalls: []
+  });
 
   try {
     // Build provider messages with context trimming
@@ -56,7 +83,7 @@ export async function generateResponse(
       thoughtStart = 0;
       const pendingToolCalls: ToolCall[] = [];
 
-      store.setState({ streamingContent: '', streamingThought: '', thoughtTimeMs: 0, pendingToolCalls: [] });
+      updateGenState({ streamingContent: '', streamingThought: '', thoughtTimeMs: 0, pendingToolCalls: [] });
 
       let clampedThinkingMode: import('@/lib/types').ThinkingMode | undefined = settings.modelThinkingModes?.[modelId] || settings.thinkingMode;
       const model = (await provider.listModels()).find(m => m.id === modelId);
@@ -138,7 +165,7 @@ export async function generateResponse(
           }
 
           if (stateUpdated) {
-            store.setState(newState);
+            updateGenState(newState);
           }
 
           // ~60fps
@@ -159,7 +186,7 @@ export async function generateResponse(
 
         if (chunk.type === 'tool_call' && chunk.toolCall) {
           pendingToolCalls.push(chunk.toolCall);
-          store.setState({ pendingToolCalls: [...pendingToolCalls] });
+          updateGenState({ pendingToolCalls: [...pendingToolCalls] });
         }
 
         if (chunk.type === 'error') {
@@ -341,8 +368,9 @@ export async function generateResponse(
     const conversations = useChatStore
       .getState()
       .conversations.map((c) => (c.id === conv.id ? conv : c));
-    store.setState({
-      conversations,
+    store.setState({ conversations });
+    
+    updateGenState({
       isGenerating: false,
       abortController: null,
       streamingContent: '',
@@ -359,7 +387,7 @@ export async function generateResponse(
         message: `Error: ${e instanceof Error ? e.message : 'Unknown'}`,
       });
     }
-    store.setState({
+    updateGenState({
       isGenerating: false,
       abortController: null,
       streamingContent: '',
