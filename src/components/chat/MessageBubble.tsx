@@ -141,11 +141,13 @@ function ToolBlock({ toolCalls, allMessages }: ToolBlockProps) {
 }
 
 interface GeneratedImageBlockProps {
-  img: { imageUrl: string; imagePrompt?: string };
+  img: { imageUrl?: string; imagePrompt?: string };
 }
 
 function GeneratedImageBlock({ img }: GeneratedImageBlockProps) {
   const [isExpanded, setIsExpanded] = useState(false);
+
+  if (!img.imageUrl) return null;
 
   return (
     <div className="mb-3">
