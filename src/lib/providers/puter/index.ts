@@ -151,7 +151,7 @@ export class PuterProvider implements AIProvider {
       const responseStream = await puter.ai.chat(puterMessages as any, puterOptions);
       const toolCallsBuffer: Record<number, { id: string; name: string; arguments: string }> = {};
 
-      for await (const chunk of responseStream) {
+      for await (const chunk of responseStream as any) {
         if (typeof chunk === 'string') {
           yield { type: 'text', text: chunk };
         } else {
