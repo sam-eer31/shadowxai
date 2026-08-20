@@ -362,7 +362,7 @@ export function MessageBubble({ message, allMessages }: MessageBubbleProps) {
                     inline-block text-sm leading-relaxed
                     ${
                       isUser
-                        ? 'px-3.5 sm:px-4 py-2.5 rounded-2xl rounded-tr-xs sm:rounded-tr-xs shadow-xs text-left'
+                        ? 'px-3.5 sm:px-4 py-2.5 rounded-2xl rounded-tr-xs sm:rounded-tr-xs shadow-xs text-left whitespace-pre-wrap break-words'
                         : 'markdown-body w-full'
                     }
                   `}
@@ -377,7 +377,7 @@ export function MessageBubble({ message, allMessages }: MessageBubbleProps) {
                   }
                 >
                   {isUser ? (
-                    <span className="whitespace-pre-wrap">{textContent}</span>
+                    textContent
                   ) : (
                     <MarkdownRenderer content={textContent} />
                   )}
