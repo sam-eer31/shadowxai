@@ -43,16 +43,25 @@ export function toProviderTools(tools: ToolDefinition[]): ProviderToolDef[] {
  * Check if a tool's required configuration is available.
  */
 export function isToolAvailable(tool: ToolDefinition): boolean {
-  if (!tool.requiresConfig || tool.requiresConfig.length === 0) {
-    return true;
-  }
-
   if (typeof window === 'undefined') return false;
 
   try {
     const creds = localStorage.getItem('shadow-credentials');
-    if (!creds) return false;
-    const parsed = JSON.parse(creds);
+    const parsed = creds ? JSON.parse(creds) : {};
+
+    if (tool.name === 'web_search') {
+      return !!parsed.tavily?.apiKey;
+    }
+
+    if (tool.name === 'image_generation') {
+      const hasPuter = parsed.puter?.signedIn;
+      const hasCloudflare = parsed.cloudflare?.accountId && parsed.cloudflare?.apiToken && parsed.cloudflare?.enabled !== false;
+      return !!(hasPuter || hasCloudflare);
+    }
+
+    if (!tool.requiresConfig || tool.requiresConfig.length === 0) {
+      return true;
+    }
 
     for (const config of tool.requiresConfig) {
       const parts = config.split('.');

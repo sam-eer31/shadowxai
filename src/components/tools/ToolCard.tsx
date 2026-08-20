@@ -68,14 +68,18 @@ export function ToolCard({ tool, enabled, onToggle }: ToolCardProps) {
             {tool.description}
           </p>
         )}
-        {!available && tool.requiresConfig && (
+        {!available && (
           <p className="text-[11px] mt-1 font-medium" style={{ color: 'var(--warning)' }}>
             ⚠ Requires{' '}
-            {tool.requiresProvider === 'ollama'
-              ? 'Ollama'
-              : tool.requiresConfig.join(', ').includes('cloudflare')
-                ? 'Cloudflare'
-                : 'provider'}{' '}
+            {tool.name === 'web_search'
+              ? 'Tavily API Key'
+              : tool.name === 'image_generation'
+                ? 'Puter Sign In or Cloudflare'
+                : tool.requiresProvider === 'ollama'
+                  ? 'Ollama'
+                  : tool.requiresConfig?.join(', ').includes('cloudflare')
+                    ? 'Cloudflare'
+                    : 'provider'}{' '}
             configuration
           </p>
         )}

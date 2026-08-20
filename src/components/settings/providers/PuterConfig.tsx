@@ -140,7 +140,7 @@ export function PuterConfig() {
                 Default Image Model
               </label>
               <select
-                value={selectedImageModel || 'openai/gpt-image-1-mini'}
+                value={selectedImageModel || 'black-forest-labs/flux-2-klein-4b'}
                 onChange={(e) => setSelectedImageModel(e.target.value)}
                 className="w-full px-3.5 py-2.5 text-sm rounded-xl border outline-none"
                 style={{
@@ -149,6 +149,7 @@ export function PuterConfig() {
                   color: 'var(--text-primary)',
                 }}
               >
+                <option value="black-forest-labs/flux-2-klein-4b">FLUX.2 Klein 4B</option>
                 <option value="openai/gpt-image-1-mini">GPT Image 1 Mini</option>
                 <option value="openai/gpt-image-2">GPT Image 2</option>
               </select>
@@ -230,6 +231,7 @@ export function PuterConfig() {
                                 'DeepSeek V4 Flash': { cost: 0, count: 0, units: 0 },
                                 'DeepSeek V4 Flash:free': { cost: 0, count: 0, units: 0 },
                                 'GPT-5.6 Luna': { cost: 0, count: 0, units: 0 },
+                                'FLUX.2 Klein 4B': { cost: 0, count: 0, units: 0 },
                                 'GPT Image 1 Mini': { cost: 0, count: 0, units: 0 },
                                 'GPT Image 2': { cost: 0, count: 0, units: 0 }
                               };
@@ -266,6 +268,11 @@ export function PuterConfig() {
                                   combined['GPT-5.6 Luna'].cost += itemCost;
                                   combined['GPT-5.6 Luna'].count += itemCount;
                                   combined['GPT-5.6 Luna'].units += itemUnits;
+                                } else if (lower.includes('klein-4b')) {
+                                  if (!combined['FLUX.2 Klein 4B']) combined['FLUX.2 Klein 4B'] = { cost: 0, count: 0, units: 0 };
+                                  combined['FLUX.2 Klein 4B'].cost += itemCost;
+                                  combined['FLUX.2 Klein 4B'].count += itemCount;
+                                  combined['FLUX.2 Klein 4B'].units += itemUnits;
                                 } else if (lower.includes('image-2') || lower.includes('gpt image 2')) {
                                   combined['GPT Image 2'].cost += itemCost;
                                   combined['GPT Image 2'].count += itemCount;
@@ -277,7 +284,7 @@ export function PuterConfig() {
                                 }
                               });
                               
-                              const finalUsage = Object.entries(combined);
+                              const finalUsage = Object.entries(combined).filter(([, stats]) => stats.count > 0 || stats.cost > 0 || stats.units > 0);
                               
                               if (finalUsage.length === 0) {
                                 return <tr><td colSpan={4} style={{ color: 'var(--text-secondary)', padding: '20px', textAlign: 'left', fontSize: '14px' }}>No model usage recorded yet.</td></tr>;

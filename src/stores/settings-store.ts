@@ -57,7 +57,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   enabledTools: ['web_search', 'calculator', 'weather', 'current_time'],
   systemPrompt: DEFAULT_SYSTEM_PROMPT,
   contextWindowSize: 20,
-  selectedImageModel: 'openai/gpt-image-1-mini',
+  selectedImageModel: 'black-forest-labs/flux-2-klein-4b',
   thinkingMode: 'on',
   modelThinkingModes: {},
   userLocation: '',
@@ -89,7 +89,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
           ],
         systemPrompt: settings?.systemPrompt || DEFAULT_SYSTEM_PROMPT,
         contextWindowSize: settings?.contextWindowSize || 20,
-        selectedImageModel: settings?.selectedImageModel || 'openai/gpt-image-1-mini',
+        selectedImageModel: settings?.selectedImageModel || 'black-forest-labs/flux-2-klein-4b',
         thinkingMode: settings?.thinkingMode || 'on',
         modelThinkingModes: settings?.modelThinkingModes || {},
         userLocation: settings?.userLocation || '',
@@ -144,12 +144,34 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
       stateUpdate.selectedModels = selectedModels;
     }
 
+    // Auto-enable or disable tools based on credentials
+    const enabledTools = new Set(get().enabledTools);
+    
+    // Web Search logic
+    const hasTavily = (provider === 'tavily' ? value : creds.tavily) as any;
+    if (hasTavily?.apiKey) {
+      enabledTools.add('web_search');
+    } else {
+      enabledTools.delete('web_search');
+    }
+
+    // Image Generation logic
+    const hasPuter = (provider === 'puter' ? value : creds.puter) as any;
+    const hasCloudflare = (provider === 'cloudflare' ? value : creds.cloudflare) as any;
+    
+    const canGenImages = hasPuter?.signedIn || (hasCloudflare?.accountId && hasCloudflare?.apiToken && hasCloudflare?.enabled !== false);
+    if (canGenImages) {
+      enabledTools.add('image_generation');
+    } else {
+      enabledTools.delete('image_generation');
+    }
+
+    stateUpdate.enabledTools = Array.from(enabledTools);
+
     set(stateUpdate);
     localStorage.setItem('shadow-credentials', JSON.stringify(creds));
     
-    if (modelsChanged) {
-      persistSettings(get());
-    }
+    persistSettings(get());
   },
 
   removeCredential: (provider) => {
@@ -187,6 +209,17 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   },
 
   toggleTool: (toolName) => {
+    const creds = get().credentials;
+    
+    if (toolName === 'web_search') {
+      if (!creds.tavily?.apiKey) return; // Prevent toggle if no key
+    }
+    
+    if (toolName === 'image_generation') {
+      const canGenImages = creds.puter?.signedIn || (creds.cloudflare?.accountId && creds.cloudflare?.apiToken && creds.cloudflare?.enabled !== false);
+      if (!canGenImages) return; // Prevent toggle if no creds
+    }
+
     const enabled = get().enabledTools;
     const newEnabled = enabled.includes(toolName)
       ? enabled.filter((t) => t !== toolName)
