@@ -74,8 +74,15 @@ export function ChatInput() {
     ? modelThinkingModes[currentModel.id] ?? fallbackThinkingMode
     : fallbackThinkingMode;
   
-  if (currentModel?.capabilities?.thinking === 'levels' && !['low', 'medium', 'high'].includes(thinkingMode)) {
-    thinkingMode = 'medium';
+  if (currentModel?.capabilities?.thinking === 'levels') {
+    const opts = currentModel.capabilities.thinkingOptions || [
+      { id: 'low', label: 'Low Effort' },
+      { id: 'medium', label: 'Medium Effort' },
+      { id: 'high', label: 'High Effort' }
+    ];
+    if (!opts.find(o => o.id === thinkingMode)) {
+      thinkingMode = opts[1]?.id || opts[0]?.id || 'medium';
+    }
   }
 
   // Auto-resize textarea
@@ -328,7 +335,7 @@ export function ChatInput() {
                         {currentModel.capabilities.thinking === 'on_off'
                           ? 'Think'
                           : thinkingMode !== 'off'
-                          ? thinkingMode
+                          ? currentModel.capabilities.thinkingOptions?.find((o) => o.id === thinkingMode)?.label || thinkingMode
                           : 'Think'}
                       </span>
                       {currentModel.capabilities.thinking === 'levels' && (
@@ -418,51 +425,28 @@ export function ChatInput() {
                 <span>Thinking Effort</span>
               </div>
               <div className="flex flex-col py-1 gap-0.5">
-                <button
-                  onClick={() => {
-                    setThinkingMode('low', currentModel?.id);
-                    setShowThinkingMenu(false);
-                  }}
-                  className={`flex items-center justify-between px-3 py-2 rounded-xl text-left transition-colors ${
-                    thinkingMode === 'low'
-                      ? 'bg-black/10 dark:bg-white/10 font-semibold'
-                      : 'hover:bg-black/5 dark:hover:bg-white/5'
-                  }`}
-                  style={{ color: thinkingMode === 'low' ? 'var(--accent)' : 'var(--text-primary)' }}
-                >
-                  <span>Low Effort</span>
-                  {thinkingMode === 'low' && <Check size={14} />}
-                </button>
-                <button
-                  onClick={() => {
-                    setThinkingMode('medium', currentModel?.id);
-                    setShowThinkingMenu(false);
-                  }}
-                  className={`flex items-center justify-between px-3 py-2 rounded-xl text-left transition-colors ${
-                    thinkingMode === 'medium'
-                      ? 'bg-black/10 dark:bg-white/10 font-semibold'
-                      : 'hover:bg-black/5 dark:hover:bg-white/5'
-                  }`}
-                  style={{ color: thinkingMode === 'medium' ? 'var(--accent)' : 'var(--text-primary)' }}
-                >
-                  <span>Medium Effort</span>
-                  {thinkingMode === 'medium' && <Check size={14} />}
-                </button>
-                <button
-                  onClick={() => {
-                    setThinkingMode('high', currentModel?.id);
-                    setShowThinkingMenu(false);
-                  }}
-                  className={`flex items-center justify-between px-3 py-2 rounded-xl text-left transition-colors ${
-                    thinkingMode === 'high'
-                      ? 'bg-black/10 dark:bg-white/10 font-semibold'
-                      : 'hover:bg-black/5 dark:hover:bg-white/5'
-                  }`}
-                  style={{ color: thinkingMode === 'high' ? 'var(--accent)' : 'var(--text-primary)' }}
-                >
-                  <span>High Effort</span>
-                  {thinkingMode === 'high' && <Check size={14} />}
-                </button>
+                {(currentModel?.capabilities?.thinkingOptions || [
+                  { id: 'low', label: 'Low Effort' },
+                  { id: 'medium', label: 'Medium Effort' },
+                  { id: 'high', label: 'High Effort' }
+                ]).map((opt) => (
+                  <button
+                    key={opt.id}
+                    onClick={() => {
+                      setThinkingMode(opt.id, currentModel?.id);
+                      setShowThinkingMenu(false);
+                    }}
+                    className={`flex items-center justify-between px-3 py-2 rounded-xl text-left transition-colors ${
+                      thinkingMode === opt.id
+                        ? 'bg-black/10 dark:bg-white/10 font-semibold'
+                        : 'hover:bg-black/5 dark:hover:bg-white/5'
+                    }`}
+                    style={{ color: thinkingMode === opt.id ? 'var(--accent)' : 'var(--text-primary)' }}
+                  >
+                    <span>{opt.label}</span>
+                    {thinkingMode === opt.id && <Check size={14} />}
+                  </button>
+                ))}
               </div>
             </div>
           </>

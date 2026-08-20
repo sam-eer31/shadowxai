@@ -104,29 +104,6 @@ export function ModelSelector({ onClose }: ModelSelectorProps) {
           </button>
         </div>
 
-        {/* Provider tabs */}
-        <div className="flex border-b px-2 pt-1 gap-1" style={{ borderColor: 'var(--border)' }}>
-          {(['ollama', 'gemini'] as const).map((p) => {
-            const isSelected = activeProvider === p;
-            return (
-              <button
-                key={p}
-                onClick={() => setActiveProvider(p)}
-                className={`
-                  flex-1 py-2 px-3 text-xs font-medium rounded-lg transition-all
-                  ${isSelected ? 'shadow-xs' : 'hover:bg-black/5 dark:hover:bg-white/5 opacity-70'}
-                `}
-                style={{
-                  background: isSelected ? 'var(--accent-light)' : 'transparent',
-                  color: isSelected ? 'var(--accent)' : 'var(--text-secondary)',
-                }}
-              >
-                {p === 'ollama' ? 'Ollama Cloud' : 'Google Gemini'}
-              </button>
-            );
-          })}
-        </div>
-
         {/* Model list */}
         <div className="flex-1 overflow-y-auto p-2 space-y-1 max-h-[380px]">
           {loading ? (

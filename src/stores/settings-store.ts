@@ -47,7 +47,7 @@ interface SettingsState {
 export const useSettingsStore = create<SettingsState>((set, get) => ({
   credentials: {},
   theme: 'dark',
-  activeProvider: 'gemini',
+  activeProvider: 'puter',
   webSearchProvider: 'ollama',
   selectedModels: {},
   enabledTools: ['web_search', 'calculator', 'weather', 'current_time'],
@@ -71,7 +71,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
       set({
         credentials,
         theme: settings?.theme || 'dark',
-        activeProvider: settings?.activeProvider || 'gemini',
+        activeProvider: settings?.activeProvider || 'puter',
         webSearchProvider: settings?.webSearchProvider || 'ollama',
         selectedModels: settings?.selectedModels || {},
         enabledTools:
@@ -102,13 +102,14 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
 
     // Auto-select provider based on keys
     const hasOllama = !!creds.ollama?.apiKey;
-    const hasGemini = !!creds.gemini?.apiKey;
+    const ollamaEnabled = !!creds.ollama?.enabled;
+    const hasPuter = !!creds.puter?.signedIn;
     
     let nextProvider = get().activeProvider;
-    if (hasOllama && !hasGemini) {
+    if (hasOllama && ollamaEnabled) {
       nextProvider = 'ollama';
-    } else if (hasGemini) {
-      nextProvider = 'gemini';
+    } else {
+      nextProvider = 'puter';
     }
     stateUpdate.activeProvider = nextProvider;
     
@@ -120,8 +121,8 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
       selectedModels['ollama'] = 'gemma4:cloud';
       modelsChanged = true;
     }
-    if (nextProvider === 'gemini' && !selectedModels['gemini']) {
-      selectedModels['gemini'] = 'gemini-2.5-flash-lite';
+    if (nextProvider === 'puter' && !selectedModels['puter']) {
+      selectedModels['puter'] = 'gpt-5.6-luna';
       modelsChanged = true;
     }
     

@@ -4,7 +4,7 @@
 
 // --- Provider Types ---
 
-export type ProviderType = 'ollama' | 'gemini' | 'cloudflare';
+export type ProviderType = 'ollama' | 'puter' | 'cloudflare';
 
 export type ThinkingCapability = 'none' | 'on_off' | 'levels' | 'always_on';
 
@@ -14,6 +14,7 @@ export interface ModelCapabilities {
   toolCalling: boolean;
   imageGeneration: boolean;
   thinking: ThinkingCapability;
+  thinkingOptions?: { id: string; label: string }[];
 }
 
 export interface AIModel {
@@ -178,15 +179,15 @@ export interface AIProvider {
 // --- Settings ---
 
 export interface ProviderCredentials {
-  ollama?: { apiKey: string };
-  gemini?: { apiKey: string };
+  ollama?: { apiKey: string; enabled?: boolean };
+  puter?: { signedIn: boolean };
   cloudflare?: { accountId: string; apiToken: string };
   tavily?: { apiKey: string };
 }
 
 export type ThemeMode = 'light' | 'dark' | 'system';
 
-export type ThinkingMode = 'off' | 'on' | 'low' | 'medium' | 'high';
+export type ThinkingMode = string;
 
 export interface AppSettings {
   theme: ThemeMode;

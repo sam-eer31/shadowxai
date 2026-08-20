@@ -1,6 +1,7 @@
 'use client';
 
 import Image from 'next/image';
+import puter from '@heyputer/puter.js';
 
 import { Sparkles, Zap, Globe, Image as ImageIcon, Calculator, Settings } from 'lucide-react';
 import { useChatStore } from '@/stores/chat-store';
@@ -19,10 +20,25 @@ export function EmptyState() {
   const activeProvider = useSettingsStore((s) => s.activeProvider);
   const credentials = useSettingsStore((s) => s.credentials);
   const openSettings = useUIStore((s) => s.openSettings);
+  const setCredential = useSettingsStore((s) => s.setCredential);
 
-  const isConfigured =
-    (activeProvider === 'ollama' && credentials.ollama?.apiKey) ||
-    (activeProvider === 'gemini' && credentials.gemini?.apiKey);
+  const handleSignIn = async () => {
+    try {
+      await puter.auth.signIn();
+      const signedIn = puter.auth.isSignedIn();
+      if (signedIn) {
+        setCredential('puter', { signedIn: true });
+        useUIStore.getState().addToast({ type: 'success', message: 'Signed in to Puter.' });
+      }
+    } catch (error) {
+      console.error('Puter sign in error', error);
+      useUIStore.getState().addToast({ type: 'error', message: 'Failed to sign in to Puter.' });
+    }
+  };
+
+  const isConfigured = 
+    (activeProvider === 'ollama' && !!credentials.ollama?.apiKey) ||
+    (activeProvider === 'puter' && !!credentials.puter?.signedIn);
 
   return (
     <div className="flex-1 flex items-center justify-center p-4 sm:p-6 my-auto">
@@ -52,22 +68,37 @@ export function EmptyState() {
             }}
           >
             <p className="text-sm font-semibold mb-1" style={{ color: 'var(--accent)' }}>
-              No API key configured
+              {activeProvider === 'puter' ? 'Sign in to Puter' : 'No API key configured'}
             </p>
             <p className="text-xs mb-3" style={{ color: 'var(--text-secondary)' }}>
-              Add your {activeProvider === 'ollama' ? 'Ollama' : 'Gemini'} API key to start chatting.
+              {activeProvider === 'puter'
+                ? 'Sign in with your free Puter account to start chatting.'
+                : 'Add your Ollama API key to start chatting.'}
             </p>
-            <button
-              onClick={() => openSettings('providers')}
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold transition-all hover:scale-105 active:scale-95 shadow-sm"
-              style={{
-                background: 'var(--accent)',
-                color: 'var(--bg-primary)',
-              }}
-            >
-              <Settings size={14} />
-              Open Settings
-            </button>
+            {activeProvider === 'puter' ? (
+              <button
+                onClick={handleSignIn}
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold transition-all hover:scale-105 active:scale-95 shadow-sm"
+                style={{
+                  background: 'var(--accent)',
+                  color: 'var(--bg-primary)',
+                }}
+              >
+                Sign in with Puter
+              </button>
+            ) : (
+              <button
+                onClick={() => openSettings('providers')}
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold transition-all hover:scale-105 active:scale-95 shadow-sm"
+                style={{
+                  background: 'var(--accent)',
+                  color: 'var(--bg-primary)',
+                }}
+              >
+                <Settings size={14} />
+                Open Settings
+              </button>
+            )}
           </div>
         )}
 

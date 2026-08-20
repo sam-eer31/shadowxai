@@ -37,10 +37,10 @@ export function AboutTab() {
         </h4>
         <ul className="text-xs space-y-1.5 leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
           <li>
-            <strong>Ollama Cloud</strong> — Chat, thinking, web search, vision & tool calling.
+            <strong>Puter Cloud</strong> — GPT-5.6 Luna with native vision and tool calling.
           </li>
           <li>
-            <strong>Google Gemini</strong> — Chat, thinking levels, vision & tool calling.
+            <strong>Ollama Cloud</strong> — Chat, thinking, web search, vision & tool calling.
           </li>
           <li>
             <strong>Cloudflare Workers AI</strong> — Image generation.

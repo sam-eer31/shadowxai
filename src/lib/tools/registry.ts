@@ -30,7 +30,6 @@ export function getToolByName(name: string): ToolDefinition | undefined {
 
 /**
  * Convert internal tool definitions to provider-specific format.
- * Both Ollama and Gemini use a very similar JSON schema format.
  */
 export function toProviderTools(tools: ToolDefinition[]): ProviderToolDef[] {
   return tools.map((t) => ({

@@ -1,11 +1,11 @@
 import { OllamaProvider } from './ollama';
-import { GeminiProvider } from './gemini';
+import { PuterProvider } from './puter';
 import { CloudflareImageProvider } from './cloudflare';
 import type { AIProvider, ProviderType } from '@/lib/types';
 
 // Singleton instances
 const ollamaProvider = new OllamaProvider();
-const geminiProvider = new GeminiProvider();
+const puterProvider = new PuterProvider();
 const cloudflareProvider = new CloudflareImageProvider();
 
 /**
@@ -15,8 +15,8 @@ export function getChatProvider(type: ProviderType): AIProvider | null {
   switch (type) {
     case 'ollama':
       return ollamaProvider;
-    case 'gemini':
-      return geminiProvider;
+    case 'puter':
+      return puterProvider;
     default:
       return null;
   }
@@ -33,7 +33,7 @@ export function getImageProvider(): CloudflareImageProvider {
  * Get all available chat providers.
  */
 export function getAllChatProviders(): AIProvider[] {
-  return [ollamaProvider, geminiProvider];
+  return [ollamaProvider, puterProvider];
 }
 
 /**
