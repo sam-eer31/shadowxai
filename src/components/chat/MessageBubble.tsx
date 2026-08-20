@@ -362,7 +362,7 @@ export function MessageBubble({ message, allMessages }: MessageBubbleProps) {
                     inline-block text-sm leading-relaxed
                     ${
                       isUser
-                        ? 'px-3.5 sm:px-4 py-2.5 rounded-2xl rounded-tr-xs sm:rounded-tr-xs shadow-xs'
+                        ? 'px-3.5 sm:px-4 py-2.5 rounded-2xl rounded-tr-xs sm:rounded-tr-xs shadow-xs text-left'
                         : 'markdown-body w-full'
                     }
                   `}
