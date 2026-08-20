@@ -71,10 +71,12 @@ function ToolBlock({ toolCalls, allMessages }: ToolBlockProps) {
       {isExpanded && (
         <div className="mt-3 ml-1 relative flex flex-col gap-0">
           {/* Vertical connecting line */}
-          <div 
-            className="absolute left-[11px] top-3 bottom-3 w-[2px] rounded-full z-0" 
-            style={{ background: 'var(--border)' }} 
-          />
+          {toolCalls.length > 1 && (
+            <div 
+              className="absolute left-[11px] top-[18px] bottom-[18px] w-[2px] rounded-full z-0" 
+              style={{ background: 'var(--border)' }} 
+            />
+          )}
           
           {toolCalls.map((tc, i) => {
             const toolCallId = tc.toolCall?.id;
@@ -134,6 +136,53 @@ function ToolBlock({ toolCalls, allMessages }: ToolBlockProps) {
           })}
         </div>
       )}
+    </div>
+  );
+}
+
+interface GeneratedImageBlockProps {
+  img: { imageUrl: string; imagePrompt?: string };
+}
+
+function GeneratedImageBlock({ img }: GeneratedImageBlockProps) {
+  const [isExpanded, setIsExpanded] = useState(false);
+
+  return (
+    <div className="mb-3">
+      <div className="inline-block rounded-2xl overflow-hidden shadow-lg max-w-full sm:max-w-sm border" style={{ borderColor: 'var(--border)' }}>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={img.imageUrl}
+          alt={img.imagePrompt || 'Generated image'}
+          className="w-full h-auto"
+        />
+        {img.imagePrompt && (
+          <div
+            className="flex flex-col border-t"
+            style={{
+              background: 'var(--bg-tertiary)',
+              borderColor: 'var(--border)'
+            }}
+          >
+            <button
+              onClick={() => setIsExpanded(!isExpanded)}
+              className="flex items-center justify-between w-full px-3.5 py-2.5 text-xs font-medium focus:outline-none hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
+              style={{ color: 'var(--text-secondary)' }}
+            >
+              <span>{isExpanded ? 'Hide prompt' : 'Show prompt'}</span>
+              {isExpanded ? <ChevronDown size={14} className="opacity-60" /> : <ChevronRight size={14} className="opacity-60" />}
+            </button>
+            {isExpanded && (
+              <div
+                className="px-3.5 pb-3 pt-0 text-xs leading-relaxed animate-fade-in opacity-80"
+                style={{ color: 'var(--text-secondary)' }}
+              >
+                {img.imagePrompt}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -210,27 +259,7 @@ export function MessageBubble({ message, allMessages }: MessageBubbleProps) {
     return (
       <div className="mb-4 animate-fade-in">
         {generatedImages.map((img, i) => (
-          <div key={i} className="mb-3">
-            <div className="inline-block rounded-2xl overflow-hidden shadow-lg max-w-full sm:max-w-sm border" style={{ borderColor: 'var(--border)' }}>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={img.imageUrl}
-                alt={img.imagePrompt || 'Generated image'}
-                className="w-full h-auto"
-              />
-              {img.imagePrompt && (
-                <div
-                  className="px-3.5 py-2 text-xs"
-                  style={{
-                    background: 'var(--bg-tertiary)',
-                    color: 'var(--text-secondary)',
-                  }}
-                >
-                  {img.imagePrompt}
-                </div>
-              )}
-            </div>
-          </div>
+          <GeneratedImageBlock key={i} img={img} />
         ))}
       </div>
     );
@@ -292,37 +321,6 @@ export function MessageBubble({ message, allMessages }: MessageBubbleProps) {
           {toolCalls.length > 0 && (
             <div className="flex flex-col gap-1">
               <ToolBlock toolCalls={toolCalls} allMessages={allMessages} />
-
-              {/* Skeleton loaders for pending images */}
-              {toolCalls.map((tc, i) => {
-                const toolCallId = tc.toolCall?.id;
-                let isCompleted = false;
-                if (allMessages && toolCallId) {
-                  for (const m of allMessages) {
-                    if (m.content.some((c) => c.type === 'tool_result' && c.toolResult?.toolCallId === toolCallId)) {
-                      isCompleted = true;
-                      break;
-                    }
-                  }
-                }
-
-                if (tc.toolCall?.name === 'image_generation' && !isCompleted) {
-                  return (
-                    <div key={`skeleton-${i}`} className="animate-fade-in w-full max-w-[260px] sm:max-w-sm ml-2">
-                      <div
-                        className="rounded-2xl overflow-hidden flex flex-col items-center justify-center gap-3 animate-pulse border aspect-square w-full shadow-xs"
-                        style={{ background: 'var(--bg-tertiary)', borderColor: 'var(--border)' }}
-                      >
-                        <ImageIcon size={28} style={{ color: 'var(--text-tertiary)' }} className="opacity-50" />
-                        <span className="text-xs font-medium" style={{ color: 'var(--text-secondary)' }}>
-                          Generating image...
-                        </span>
-                      </div>
-                    </div>
-                  );
-                }
-                return null;
-              })}
             </div>
           )}
 
@@ -471,6 +469,41 @@ export function MessageBubble({ message, allMessages }: MessageBubbleProps) {
               >
                 <RefreshCw size={14} />
               </button>
+            </div>
+          )}
+
+          {/* Skeleton loaders for pending images (moved outside tool block) */}
+          {toolCalls.some(tc => tc.toolCall?.name === 'image_generation') && (
+            <div className="flex flex-col gap-3 mt-1">
+              {toolCalls.map((tc, i) => {
+                const toolCallId = tc.toolCall?.id;
+                let isCompleted = false;
+                if (allMessages && toolCallId) {
+                  for (const m of allMessages) {
+                    if (m.content.some((c) => c.type === 'tool_result' && c.toolResult?.toolCallId === toolCallId)) {
+                      isCompleted = true;
+                      break;
+                    }
+                  }
+                }
+
+                if (tc.toolCall?.name === 'image_generation' && !isCompleted) {
+                  return (
+                    <div key={`skeleton-${i}`} className="animate-fade-in w-full max-w-[260px] sm:max-w-sm">
+                      <div
+                        className="rounded-2xl overflow-hidden flex flex-col items-center justify-center gap-3 animate-pulse border aspect-square w-full shadow-xs"
+                        style={{ background: 'var(--bg-tertiary)', borderColor: 'var(--border)' }}
+                      >
+                        <ImageIcon size={28} style={{ color: 'var(--text-tertiary)' }} className="opacity-50" />
+                        <span className="text-xs font-medium" style={{ color: 'var(--text-secondary)' }}>
+                          Generating image...
+                        </span>
+                      </div>
+                    </div>
+                  );
+                }
+                return null;
+              })}
             </div>
           )}
         </div>

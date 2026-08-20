@@ -207,6 +207,11 @@ export async function generateResponse(
           updatedAt: Date.now(),
         };
 
+        // Clear consumed text and thought to prevent duplication if we break out of the loop
+        fullText = '';
+        fullThought = '';
+        thoughtStart = 0;
+
         // Check for infinite loops (identical tool calls to last turn)
         let isLoop = false;
         if (toolTurns > 1 && allToolCalls.length > 0) {

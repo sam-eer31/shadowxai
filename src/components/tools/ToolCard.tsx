@@ -1,4 +1,5 @@
-import { Globe, Calculator, CloudSun, Clock, Image } from 'lucide-react';
+import { useState } from 'react';
+import { Globe, Calculator, CloudSun, Clock, Image, ChevronDown, ChevronRight } from 'lucide-react';
 import type { ToolDefinition } from '@/lib/types';
 import { isToolAvailable } from '@/lib/tools/registry';
 
@@ -19,6 +20,7 @@ interface ToolCardProps {
 export function ToolCard({ tool, enabled, onToggle }: ToolCardProps) {
   const Icon = ICONS[tool.icon] || Globe;
   const available = isToolAvailable(tool);
+  const [isExpanded, setIsExpanded] = useState(false);
 
   return (
     <div
@@ -43,7 +45,10 @@ export function ToolCard({ tool, enabled, onToggle }: ToolCardProps) {
 
       {/* Info */}
       <div className="flex-1 min-w-0 pr-1">
-        <div className="flex items-center gap-2 flex-wrap">
+        <button
+          onClick={() => setIsExpanded(!isExpanded)}
+          className="flex items-center gap-2 flex-wrap text-left w-full focus:outline-none transition-opacity hover:opacity-80"
+        >
           <h3 className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
             {tool.name.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())}
           </h3>
@@ -56,10 +61,15 @@ export function ToolCard({ tool, enabled, onToggle }: ToolCardProps) {
           >
             {tool.category}
           </span>
-        </div>
-        <p className="text-xs mt-1 leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
-          {tool.description}
-        </p>
+          <div className="ml-0 sm:ml-auto" style={{ color: 'var(--text-tertiary)' }}>
+            {isExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+          </div>
+        </button>
+        {isExpanded && (
+          <p className="text-xs mt-2 leading-relaxed animate-fade-in" style={{ color: 'var(--text-secondary)' }}>
+            {tool.description}
+          </p>
+        )}
         {!available && tool.requiresConfig && (
           <p className="text-[11px] mt-1.5 font-medium" style={{ color: 'var(--warning)' }}>
             ⚠ Requires{' '}

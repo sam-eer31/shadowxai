@@ -74,10 +74,12 @@ export function StreamingBubble({ content, thought, thoughtTimeMs, toolCalls }: 
               {isToolsExpanded && (
                 <div className="mt-3 ml-1 relative flex flex-col gap-0">
                   {/* Vertical connecting line */}
-                  <div 
-                    className="absolute left-[11px] top-3 bottom-3 w-[2px] rounded-full z-0" 
-                    style={{ background: 'var(--border)' }} 
-                  />
+                  {toolCalls.length > 1 && (
+                    <div 
+                      className="absolute left-[11px] top-[18px] bottom-[18px] w-[2px] rounded-full z-0" 
+                      style={{ background: 'var(--border)' }} 
+                    />
+                  )}
                   
                   {toolCalls.map((tc, i) => (
                     <div key={i} className="flex items-center gap-3 relative z-10 py-1.5">
@@ -107,22 +109,6 @@ export function StreamingBubble({ content, thought, thoughtTimeMs, toolCalls }: 
                     </div>
                   ))}
 
-                  {/* Skeleton loaders for pending images */}
-                  {toolCalls
-                    .filter((tc) => tc.name === 'image_generation')
-                    .map((tc, i) => (
-                      <div key={`skeleton-${i}`} className="animate-fade-in w-full max-w-[260px] sm:max-w-sm ml-2 mt-2">
-                        <div
-                          className="rounded-2xl overflow-hidden flex flex-col items-center justify-center gap-3 animate-pulse border aspect-square w-full shadow-xs"
-                          style={{ background: 'var(--bg-tertiary)', borderColor: 'var(--border)' }}
-                        >
-                          <ImageIcon size={28} style={{ color: 'var(--text-tertiary)' }} className="opacity-50" />
-                          <span className="text-xs font-medium" style={{ color: 'var(--text-secondary)' }}>
-                            Generating image...
-                          </span>
-                        </div>
-                      </div>
-                    ))}
                 </div>
               )}
             </div>
@@ -153,6 +139,23 @@ export function StreamingBubble({ content, thought, thoughtTimeMs, toolCalls }: 
               </span>
             </div>
           ) : null}
+
+          {/* Skeleton loaders for pending images */}
+          {toolCalls
+            .filter((tc) => tc.name === 'image_generation')
+            .map((tc, i) => (
+              <div key={`skeleton-${i}`} className="animate-fade-in w-full max-w-[260px] sm:max-w-sm mt-1">
+                <div
+                  className="rounded-2xl overflow-hidden flex flex-col items-center justify-center gap-3 animate-pulse border aspect-square w-full shadow-xs"
+                  style={{ background: 'var(--bg-tertiary)', borderColor: 'var(--border)' }}
+                >
+                  <ImageIcon size={28} style={{ color: 'var(--text-tertiary)' }} className="opacity-50" />
+                  <span className="text-xs font-medium" style={{ color: 'var(--text-secondary)' }}>
+                    Generating image...
+                  </span>
+                </div>
+              </div>
+            ))}
         </div>
       </div>
     </div>

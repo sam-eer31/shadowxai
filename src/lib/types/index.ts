@@ -181,7 +181,7 @@ export interface AIProvider {
 export interface ProviderCredentials {
   ollama?: { apiKey: string; enabled?: boolean };
   puter?: { signedIn: boolean };
-  cloudflare?: { accountId: string; apiToken: string };
+  cloudflare?: { accountId: string; apiToken: string; enabled?: boolean };
   tavily?: { apiKey: string };
 }
 
@@ -197,6 +197,7 @@ export interface AppSettings {
   enabledTools: string[];
   systemPrompt: string;
   contextWindowSize: number;
+  selectedImageModel?: string;
   thinkingMode?: ThinkingMode;
   modelThinkingModes?: Record<string, ThinkingMode>;
 }

@@ -22,6 +22,7 @@ interface SettingsState {
   enabledTools: string[];
   systemPrompt: string;
   contextWindowSize: number;
+  selectedImageModel?: string;
   thinkingMode: ThinkingMode;
   modelThinkingModes: Record<string, ThinkingMode>;
   // Initialization
@@ -41,6 +42,7 @@ interface SettingsState {
   toggleTool: (toolName: string) => void;
   setSystemPrompt: (prompt: string) => void;
   setContextWindowSize: (size: number) => void;
+  setSelectedImageModel: (model: string) => void;
   setThinkingMode: (mode: ThinkingMode, modelId?: string) => void;
 }
 
@@ -53,6 +55,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   enabledTools: ['web_search', 'calculator', 'weather', 'current_time'],
   systemPrompt: DEFAULT_SYSTEM_PROMPT,
   contextWindowSize: 20,
+  selectedImageModel: 'openai/gpt-image-1-mini',
   thinkingMode: 'on',
   modelThinkingModes: {},
   initialized: false,
@@ -83,6 +86,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
           ],
         systemPrompt: settings?.systemPrompt || DEFAULT_SYSTEM_PROMPT,
         contextWindowSize: settings?.contextWindowSize || 20,
+        selectedImageModel: settings?.selectedImageModel || 'openai/gpt-image-1-mini',
         thinkingMode: settings?.thinkingMode || 'on',
         modelThinkingModes: settings?.modelThinkingModes || {},
         initialized: true,
@@ -191,6 +195,11 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
     persistSettings(get());
   },
 
+  setSelectedImageModel: (model) => {
+    set({ selectedImageModel: model });
+    persistSettings(get());
+  },
+
   setThinkingMode: (mode, modelId) => {
     if (modelId) {
       set((state) => ({
@@ -224,6 +233,7 @@ function persistSettings(state: SettingsState) {
     enabledTools: state.enabledTools,
     systemPrompt: state.systemPrompt,
     contextWindowSize: state.contextWindowSize,
+    selectedImageModel: state.selectedImageModel,
     thinkingMode: state.thinkingMode,
     modelThinkingModes: state.modelThinkingModes,
   };

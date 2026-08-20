@@ -252,7 +252,7 @@ function CloudflareConfig() {
         </a>
       </div>
       <p className="text-xs mb-3" style={{ color: 'var(--text-tertiary)' }}>
-        Optional — used for local image generation tool.
+        Optional — used for local image generation tool if Puter is unavailable or if you prefer Cloudflare.
       </p>
       <div className="space-y-3">
         <div>
@@ -319,17 +319,29 @@ function CloudflareConfig() {
           </button>
         </div>
         {credentials.cloudflare && (
-          <button
-            onClick={() => {
-              removeCredential('cloudflare');
-              setAccountId('');
-              setApiToken('');
-            }}
-            className="text-xs transition-colors hover:underline"
-            style={{ color: 'var(--error)' }}
-          >
-            Remove credentials
-          </button>
+          <div className="flex items-center justify-between mt-2">
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={!!credentials.cloudflare.enabled}
+                onChange={(e) => setCredential('cloudflare', { ...credentials.cloudflare!, enabled: e.target.checked })}
+                className="rounded border-gray-300 focus:ring-accent"
+                style={{ accentColor: 'var(--accent)' }}
+              />
+              <span className="text-xs font-medium" style={{ color: 'var(--text-secondary)' }}>Enable Cloudflare (Secondary)</span>
+            </label>
+            <button
+              onClick={() => {
+                removeCredential('cloudflare');
+                setAccountId('');
+                setApiToken('');
+              }}
+              className="text-xs transition-colors hover:underline"
+              style={{ color: 'var(--error)' }}
+            >
+              Remove credentials
+            </button>
+          </div>
         )}
         {testResult && (
           <div
@@ -444,6 +456,8 @@ function PuterConfig() {
   const removeCredential = useSettingsStore((s) => s.removeCredential);
   const selectedModels = useSettingsStore((s) => s.selectedModels);
   const setSelectedModel = useSettingsStore((s) => s.setSelectedModel);
+  const selectedImageModel = useSettingsStore((s) => s.selectedImageModel);
+  const setSelectedImageModel = useSettingsStore((s) => s.setSelectedImageModel);
   const [isSignedIn, setIsSignedIn] = useState(false);
   const [models, setModels] = useState<AIModel[]>([]);
   const [usage, setUsage] = useState<any>(null);
@@ -565,6 +579,25 @@ function PuterConfig() {
               </div>
             )}
 
+            <div className="mb-2">
+              <label className="text-xs font-medium mb-1 block" style={{ color: 'var(--text-secondary)' }}>
+                Default Image Model
+              </label>
+              <select
+                value={selectedImageModel || 'openai/gpt-image-1-mini'}
+                onChange={(e) => setSelectedImageModel(e.target.value)}
+                className="w-full px-3.5 py-2.5 text-sm rounded-xl border outline-none"
+                style={{
+                  background: 'var(--bg-tertiary)',
+                  borderColor: 'var(--border)',
+                  color: 'var(--text-primary)',
+                }}
+              >
+                <option value="openai/gpt-image-1-mini">GPT Image 1 Mini</option>
+                <option value="openai/gpt-image-2">GPT Image 2</option>
+              </select>
+            </div>
+
             {loadingUsage && !usage ? (
               <div className="flex items-center gap-2 mt-2 text-xs" style={{ color: 'var(--text-tertiary)' }}>
                 <Loader2 size={14} className="animate-spin" />
@@ -639,7 +672,9 @@ function PuterConfig() {
                               
                               const combined: Record<string, any> = {
                                 'DeepSeek V4 Flash': { cost: 0, count: 0, units: 0 },
-                                'GPT-5.6 Luna': { cost: 0, count: 0, units: 0 }
+                                'GPT-5.6 Luna': { cost: 0, count: 0, units: 0 },
+                                'GPT Image 1 Mini': { cost: 0, count: 0, units: 0 },
+                                'GPT Image 2': { cost: 0, count: 0, units: 0 }
                               };
 
                               Object.entries(usage.usage).forEach(([apiName, stats]: [string, any]) => {
@@ -652,13 +687,21 @@ function PuterConfig() {
                                   combined['GPT-5.6 Luna'].cost += stats.cost || 0;
                                   combined['GPT-5.6 Luna'].count += stats.count || 0;
                                   combined['GPT-5.6 Luna'].units += stats.units || 0;
+                                } else if (lower.includes('image-2') || lower.includes('gpt image 2')) {
+                                  combined['GPT Image 2'].cost += stats.cost || 0;
+                                  combined['GPT Image 2'].count += stats.count || 0;
+                                  combined['GPT Image 2'].units += stats.units || 0;
+                                } else if (lower.includes('image') || lower.includes('txt2img')) {
+                                  combined['GPT Image 1 Mini'].cost += stats.cost || 0;
+                                  combined['GPT Image 1 Mini'].count += stats.count || 0;
+                                  combined['GPT Image 1 Mini'].units += stats.units || 0;
                                 }
                               });
                               
                               const finalUsage = Object.entries(combined).filter(([_, stats]) => stats.count > 0 || stats.cost > 0);
                               
                               if (finalUsage.length === 0) {
-                                return <tr><td colSpan={3} style={{ color: '#8e97a5', padding: '20px', textAlign: 'left', fontSize: '14px' }}>No DeepSeek or Luna usage recorded yet.</td></tr>;
+                                return <tr><td colSpan={3} style={{ color: '#8e97a5', padding: '20px', textAlign: 'left', fontSize: '14px' }}>No model usage recorded yet.</td></tr>;
                               }
                               
                               return finalUsage
