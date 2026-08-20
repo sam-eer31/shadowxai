@@ -19,6 +19,11 @@ const PUTER_MODEL_CAPS: Record<
     tools: true, 
     thinking: 'none'
   },
+  'deepseek-v4-flash:free': { 
+    vision: false, 
+    tools: true, 
+    thinking: 'none'
+  },
 };
 
 /**
@@ -52,6 +57,7 @@ export class PuterProvider implements AIProvider {
     const models = [
       { id: 'gpt-5.6-luna', name: 'GPT-5.6 Luna' },
       { id: 'deepseek-v4-flash', name: 'DeepSeek V4 Flash' },
+      { id: 'deepseek-v4-flash:free', name: 'DeepSeek V4 Flash:free' },
     ];
 
     return models.map((m) => ({

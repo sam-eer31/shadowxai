@@ -3,7 +3,7 @@ import { useSettingsStore } from '@/stores/settings-store';
 import { useUIStore } from '@/stores/ui-store';
 import { getChatProvider } from '@/lib/providers';
 import { getAllTools, toProviderTools } from '@/lib/tools/registry';
-import { executeToolCalls } from '@/lib/tools/executor';
+import { executeToolCalls } from './tool-executor';
 import { generateId } from '@/lib/utils/id';
 import { saveConversation } from '@/lib/storage/db';
 import { extractBase64Data } from '@/lib/utils/image';
@@ -73,6 +73,7 @@ export async function generateResponse(
     let fullText = '';
     let fullThought = '';
     let thoughtStart = 0;
+    let currentThoughtTimeMs = 0;
     const allToolCalls: ToolCall[] = [];
     const allToolResults: ToolResult[] = [];
 
@@ -81,6 +82,7 @@ export async function generateResponse(
       fullText = '';
       fullThought = '';
       thoughtStart = 0;
+      currentThoughtTimeMs = 0;
       const pendingToolCalls: ToolCall[] = [];
 
       updateGenState({ streamingContent: '', streamingThought: '', thoughtTimeMs: 0, pendingToolCalls: [] });
@@ -149,7 +151,8 @@ export async function generateResponse(
             displayedThought = fullThought.slice(0, displayedThought.length + step);
             newState.streamingThought = displayedThought;
             if (thoughtStart === 0) thoughtStart = Date.now();
-            newState.thoughtTimeMs = Date.now() - thoughtStart;
+            currentThoughtTimeMs = Date.now() - thoughtStart;
+            newState.thoughtTimeMs = currentThoughtTimeMs;
             stateUpdated = true;
           } else if (displayedContent.length < fullText.length) {
             const remaining = fullText.length - displayedContent.length;
@@ -208,7 +211,7 @@ export async function generateResponse(
         // Add assistant message with tool calls
         const contentBlocks: MessageContent[] = [];
         if (fullThought) {
-          contentBlocks.push({ type: 'thought', thought: fullThought, thoughtTimeMs: Date.now() - thoughtStart });
+          contentBlocks.push({ type: 'thought', thought: fullThought, thoughtTimeMs: currentThoughtTimeMs });
         }
         if (fullText) {
           contentBlocks.push({ type: 'text', text: fullText });
@@ -238,6 +241,7 @@ export async function generateResponse(
         fullText = '';
         fullThought = '';
         thoughtStart = 0;
+        currentThoughtTimeMs = 0;
 
         // Check for infinite loops (identical tool calls to last turn)
         let isLoop = false;
@@ -337,7 +341,7 @@ export async function generateResponse(
     if (fullText || fullThought || allToolCalls.length === 0) {
       const contentBlocks: MessageContent[] = [];
       if (fullThought) {
-        contentBlocks.push({ type: 'thought', thought: fullThought, thoughtTimeMs: Date.now() - thoughtStart });
+        contentBlocks.push({ type: 'thought', thought: fullThought, thoughtTimeMs: currentThoughtTimeMs });
       }
       if (fullText) {
         contentBlocks.push({ type: 'text', text: fullText });

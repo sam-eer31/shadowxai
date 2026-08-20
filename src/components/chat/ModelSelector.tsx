@@ -164,12 +164,20 @@ export function ModelSelector({ onClose }: ModelSelectorProps) {
                       >
                         <div className="flex-1 min-w-0 pr-3">
                           <div
-                            className={`text-sm font-medium truncate ${isCurrent ? 'font-semibold' : ''}`}
+                            className={`text-sm font-medium flex items-center gap-2 ${isCurrent ? 'font-semibold' : ''}`}
                             style={{
                               color: isCurrent ? 'var(--accent)' : 'var(--text-primary)',
                             }}
                           >
-                            {model.name}
+                            <span className="truncate">{model.name}</span>
+                            {model.id.includes(':free') && (
+                              <span
+                                className="shrink-0 inline-flex items-center text-[9px] px-1.5 py-0.5 rounded font-bold uppercase tracking-wider"
+                                style={{ background: 'rgba(234, 179, 8, 0.15)', color: '#eab308' }}
+                              >
+                                Slower
+                              </span>
+                            )}
                           </div>
 
                           {/* Capabilities Tags */}

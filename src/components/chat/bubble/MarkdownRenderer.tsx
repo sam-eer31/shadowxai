@@ -2,7 +2,7 @@
 
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import rehypeHighlight from 'rehype-highlight';
+import rehypeRaw from 'rehype-raw';
 import { CodeBlock } from './CodeBlock';
 import type { ComponentPropsWithoutRef } from 'react';
 
@@ -14,7 +14,7 @@ export function MarkdownRenderer({ content }: MarkdownRendererProps) {
   return (
     <ReactMarkdown
       remarkPlugins={[remarkGfm]}
-      rehypePlugins={[rehypeHighlight]}
+      rehypePlugins={[rehypeRaw]}
       components={{
         // Code blocks with copy button
         code(props: ComponentPropsWithoutRef<'code'>) {

@@ -25,6 +25,7 @@ interface SettingsState {
   selectedImageModel?: string;
   thinkingMode: ThinkingMode;
   modelThinkingModes: Record<string, ThinkingMode>;
+  userLocation: string;
   // Initialization
   initialized: boolean;
   // Actions
@@ -44,6 +45,7 @@ interface SettingsState {
   setContextWindowSize: (size: number) => void;
   setSelectedImageModel: (model: string) => void;
   setThinkingMode: (mode: ThinkingMode, modelId?: string) => void;
+  setUserLocation: (location: string) => void;
 }
 
 export const useSettingsStore = create<SettingsState>((set, get) => ({
@@ -58,6 +60,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   selectedImageModel: 'openai/gpt-image-1-mini',
   thinkingMode: 'on',
   modelThinkingModes: {},
+  userLocation: '',
   initialized: false,
 
   initialize: async () => {
@@ -89,12 +92,29 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
         selectedImageModel: settings?.selectedImageModel || 'openai/gpt-image-1-mini',
         thinkingMode: settings?.thinkingMode || 'on',
         modelThinkingModes: settings?.modelThinkingModes || {},
+        userLocation: settings?.userLocation || '',
         initialized: true,
       });
 
       // Apply theme
       const theme = settings?.theme || 'dark';
       applyTheme(theme);
+
+      // Auto-detect location silently via IP if not set
+      if (!settings?.userLocation) {
+        try {
+          const res = await fetch('https://ipapi.co/json/');
+          if (res.ok) {
+            const data = await res.json();
+            if (data.city && data.country_name) {
+              const loc = `${data.city}, ${data.country_name}`;
+              get().setUserLocation(loc);
+            }
+          }
+        } catch (e) {
+          console.error('Failed to auto-detect location silently:', e);
+        }
+      }
     } catch {
       set({ initialized: true });
     }
@@ -200,6 +220,11 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
     }
     persistSettings(get());
   },
+
+  setUserLocation: (location) => {
+    set({ userLocation: location });
+    persistSettings(get());
+  },
 }));
 
 function applyTheme(theme: ThemeMode) {
@@ -226,6 +251,7 @@ function persistSettings(state: SettingsState) {
     selectedImageModel: state.selectedImageModel,
     thinkingMode: state.thinkingMode,
     modelThinkingModes: state.modelThinkingModes,
+    userLocation: state.userLocation,
   };
   setSetting('app-settings', settings).catch(console.error);
 }

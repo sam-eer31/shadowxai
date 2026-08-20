@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Image Generator — Puter.js + FLUX</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: linear-gradient(135deg, #1a1a2e, #16213e, #0f3460);
+            padding: 20px;
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 16px;
+            padding: 32px;
+            width: 100%;
+            max-width: 620px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+        }
+
+        h1 {
+            color: #fff;
+            font-size: 1.6rem;
+            margin-bottom: 6px;
+            text-align: center;
+        }
+
+        .subtitle {
+            color: #a0b4d6;
+            font-size: 0.9rem;
+            text-align: center;
+            margin-bottom: 24px;
+        }
+
+        label {
+            display: block;
+            color: #cfe0ff;
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        textarea {
+            width: 100%;
+            min-height: 90px;
+            resize: vertical;
+            padding: 14px;
+            font-size: 1rem;
+            color: #fff;
+            background: rgba(0, 0, 0, 0.35);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        textarea:focus {
+            border-color: #4f9cf9;
+        }
+
+        textarea::placeholder {
+            color: #7f93b8;
+        }
+
+        .examples {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin: 12px 0 18px;
+        }
+
+        .chip {
+            background: rgba(79, 156, 249, 0.15);
+            color: #9cc4ff;
+            border: 1px solid rgba(79, 156, 249, 0.35);
+            border-radius: 999px;
+            padding: 6px 12px;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .chip:hover {
+            background: rgba(79, 156, 249, 0.3);
+            color: #fff;
+        }
+
+        button {
+            width: 100%;
+            padding: 14px;
+            font-size: 1rem;
+            font-weight: 600;
+            color: #fff;
+            background: linear-gradient(135deg, #4f9cf9, #6a5af9);
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: transform 0.1s, opacity 0.2s;
+        }
+
+        button:hover:not(:disabled) {
+            transform: translateY(-2px);
+            opacity: 0.92;
+        }
+
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .status {
+            margin-top: 16px;
+            text-align: center;
+            color: #a0b4d6;
+            font-size: 0.9rem;
+            min-height: 24px;
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-top-color: #fff;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            vertical-align: middle;
+            margin-right: 8px;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .result {
+            margin-top: 20px;
+            display: flex;
+            justify-content: center;
+            min-height: 60px;
+        }
+
+        .result img {
+            max-width: 100%;
+            border-radius: 12px;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
+        }
+
+        .error {
+            color: #ff8a8a;
+            text-align: center;
+            margin-top: 16px;
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="card">
+        <h1>🎨 AI Image Generator</h1>
+        <p class="subtitle">Powered by Puter.js + FLUX.2 Klein 4B</p>
+
+        <form id="generateForm">
+            <label for="prompt">Describe your image</label>
+            <textarea id="prompt" placeholder="e.g. A serene mountain landscape at sunset">
+A serene mountain landscape at sunset</textarea>
+
+            <div class="examples" id="examples">
+                <span class="chip">A serene mountain landscape at sunset</span>
+                <span class="chip">A futuristic cyberpunk city in neon rain</span>
+                <span class="chip">A cute robot reading a book in a library</span>
+                <span class="chip">An astronaut riding a horse on Mars</span>
+            </div>
+
+            <button type="submit" id="generateBtn">⚡ Generate Image</button>
+        </form>
+
+        <div class="status" id="status"></div>
+        <div class="error" id="error"></div>
+        <div class="result" id="result"></div>
+    </div>
+
+    <script src="https://js.puter.com/v2/"></script>
+    <script>
+        const form = document.getElementById('generateForm');
+        const promptInput = document.getElementById('prompt');
+        const generateBtn = document.getElementById('generateBtn');
+        const statusEl = document.getElementById('status');
+        const errorEl = document.getElementById('error');
+        const resultEl = document.getElementById('result');
+
+        // Click an example chip to fill the textarea
+        document.querySelectorAll('.chip').forEach(chip => {
+            chip.addEventListener('click', () => {
+                promptInput.value = chip.textContent;
+                promptInput.focus();
+            });
+        });
+
+        async function generateImage(prompt) {
+            // Reset previous state
+            errorEl.textContent = '';
+            resultEl.innerHTML = '';
+            generateBtn.disabled = true;
+
+            // Show loading state
+            statusEl.innerHTML = '<span class="spinner"></span> Generating image…';
+
+            try {
+                const image = await puter.ai.txt2img(prompt, {
+                    model: "black-forest-labs/flux-2-klein-4b"
+                });
+                resultEl.appendChild(image);
+                statusEl.textContent = '✅ Done!';
+            } catch (err) {
+                console.error(err);
+                errorEl.textContent = '❌ Something went wrong: ' + (err.message || err);
+                statusEl.textContent = '';
+            } finally {
+                generateBtn.disabled = false;
+            }
+        }
+
+        form.addEventListener('submit', (event) => {
+            event.preventDefault();
+            const prompt = promptInput.value.trim();
+            if (!prompt) {
+                errorEl.textContent = '⚠️ Please enter a prompt first.';
+                return;
+            }
+            generateImage(prompt);
+        });
+    </script>
+</body>
+
+</html>

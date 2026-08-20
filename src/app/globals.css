@@ -5,7 +5,8 @@
 :root {
   --bg-primary: #FCFCFC;
   --bg-secondary: #F9F9F9;
-  --bg-tertiary: #e8eaed;
+  --bg-tertiary: #ededed;
+  --bg-codeblock: #f6f8fa;
   --text-primary: #222831;
   --text-secondary: #393E46;
   --text-tertiary: #6b7280;
@@ -17,12 +18,27 @@
   --error: #ef4444;
   --warning: #f59e0b;
   --surface-glass: rgba(255, 255, 255, 0.8);
+  --syntax-text: #ABB2BF;
+  --syntax-keyword: #D55FDE;
+  --syntax-string: #89CA78;
+  --syntax-number: #D19A66;
+  --syntax-comment: #7F848E;
+  --syntax-function: #61AFEF;
+  --syntax-variable: #454545;
+  --syntax-tag: #EF596F;
+  --syntax-type: #E5C07B;
+  --syntax-constant: #D19A66;
+  --syntax-operator: #2BBAC5;
+  --syntax-property: #ABB2BF;
+  --syntax-punctuation: #D19A66;
+  --syntax-special: #2BBAC5;
 }
 
 .dark {
   --bg-primary: #040504;
   --bg-secondary: #101111;
-  --bg-tertiary: #4b515c;
+  --bg-tertiary: #161718;
+  --bg-codeblock: #101111;
   --text-primary: #eeeeee;
   --text-secondary: #b3b9c5;
   --text-tertiary: #848b98;
@@ -34,6 +50,20 @@
   --error: #f87171;
   --warning: #fbbf24;
   --surface-glass: rgba(34, 40, 49, 0.85);
+  --syntax-text: #ABB2BF;
+  --syntax-keyword: #D55FDE;
+  --syntax-string: #89CA78;
+  --syntax-number: #D19A66;
+  --syntax-comment: #7F848E;
+  --syntax-function: #61AFEF;
+  --syntax-variable: #ABB2BF;
+  --syntax-tag: #EF596F;
+  --syntax-type: #E5C07B;
+  --syntax-constant: #D19A66;
+  --syntax-operator: #2BBAC5;
+  --syntax-property: #ABB2BF;
+  --syntax-punctuation: #D19A66;
+  --syntax-special: #2BBAC5;
 }
 
 .dark img[src*="logo.svg"] {
@@ -53,7 +83,7 @@ html.dark {
 }
 
 body {
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-family: 'Nunito', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   background: var(--bg-primary);
   color: var(--text-primary);
   margin: 0;
@@ -197,7 +227,7 @@ a[aria-disabled="true"] {
 }
 
 .streaming-cursor::after {
-  content: '▋';
+  content: '|';
   animation: pulse-dot 1s infinite;
   color: var(--accent);
   margin-left: 2px;
@@ -227,11 +257,11 @@ a[aria-disabled="true"] {
   max-width: 100%;
 }
 
-.markdown-body > *:first-child {
+.markdown-body>*:first-child {
   margin-top: 0;
 }
 
-.markdown-body > *:last-child {
+.markdown-body>*:last-child {
   margin-bottom: 0;
 }
 
@@ -340,20 +370,103 @@ a[aria-disabled="true"] {
   margin: 0.5em 0;
 }
 
-/* Highlight.js theme overrides */
-.dark .hljs {
-  background: #222831 !important;
-  color: #eeeeee !important;
-}
-
+/* Highlight.js premium syntax highlighting */
 .hljs {
-  background: #f4f5f7 !important;
-  color: #222831 !important;
-  padding: 1em !important;
-  border-radius: 0 0 8px 8px !important;
+  background: transparent !important;
+  color: var(--syntax-text) !important;
+  padding: 0 !important;
+  border-radius: 0 !important;
   overflow-x: auto !important;
   font-size: 0.875rem !important;
   line-height: 1.6 !important;
+}
+
+.hljs-comment,
+.hljs-quote {
+  color: var(--syntax-comment);
+  font-style: italic;
+}
+
+.hljs-keyword,
+.hljs-selector-tag,
+.hljs-addition {
+  color: var(--syntax-keyword);
+}
+
+.hljs-type,
+.hljs-class .hljs-title,
+.hljs-title.class_ {
+  color: var(--syntax-type);
+}
+
+.hljs-number,
+.hljs-string,
+.hljs-meta .hljs-meta-string,
+.hljs-doctag {
+  color: var(--syntax-string);
+}
+
+.hljs-title,
+.hljs-section,
+.hljs-name,
+.hljs-selector-id,
+.hljs-selector-class,
+.hljs-built_in,
+.hljs-title.function_ {
+  color: var(--syntax-function);
+}
+
+.hljs-variable,
+.hljs-template-variable,
+.hljs-params {
+  color: var(--syntax-variable);
+}
+
+.hljs-attr,
+.hljs-attribute,
+.hljs-property {
+  color: var(--syntax-property);
+}
+
+.hljs-symbol,
+.hljs-bullet,
+.hljs-meta,
+.hljs-meta .hljs-keyword,
+.hljs-selector-attr,
+.hljs-selector-pseudo,
+.hljs-link {
+  color: var(--syntax-tag);
+}
+
+.hljs-operator {
+  color: var(--syntax-operator);
+}
+
+.hljs-punctuation {
+  color: var(--syntax-punctuation);
+}
+
+.hljs-literal,
+.hljs-variable.constant_,
+.hljs-constant {
+  color: var(--syntax-constant);
+}
+
+.hljs-regexp,
+.hljs-subst {
+  color: var(--syntax-special);
+}
+
+.hljs-deletion {
+  color: var(--error);
+}
+
+.hljs-emphasis {
+  font-style: italic;
+}
+
+.hljs-strong {
+  font-weight: bold;
 }
 
 /* Toast animation */
@@ -383,4 +496,71 @@ a[aria-disabled="true"] {
 
 .toast-enter {
   animation: toastIn 0.25s ease-out;
+}
+
+/* Prism.js Support */
+.token.comment,
+.token.prolog,
+.token.doctype,
+.token.cdata {
+  color: var(--syntax-comment);
+  font-style: italic;
+}
+
+.token.punctuation {
+  color: var(--syntax-punctuation);
+}
+
+.token.property {
+  color: var(--syntax-property);
+}
+
+.token.tag,
+.token.deleted {
+  color: var(--syntax-tag);
+}
+
+.token.boolean,
+.token.number,
+.token.symbol {
+  color: var(--syntax-number);
+}
+
+.token.constant {
+  color: var(--syntax-constant);
+}
+
+.token.selector,
+.token.attr-name,
+.token.string,
+.token.char,
+.token.inserted {
+  color: var(--syntax-string);
+}
+
+.token.operator,
+.token.entity,
+.token.url {
+  color: var(--syntax-operator);
+}
+
+.token.atrule,
+.token.attr-value,
+.token.keyword {
+  color: var(--syntax-keyword);
+}
+
+.token.function,
+.token.class-name {
+  color: var(--syntax-function);
+}
+
+.token.regex,
+.token.important,
+.token.builtin {
+  color: var(--syntax-special);
+}
+
+.token.variable {
+  color: var(--syntax-variable);
 }

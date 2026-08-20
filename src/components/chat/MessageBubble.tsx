@@ -2,199 +2,24 @@
 
 import Image from 'next/image';
 
-import { Copy, RefreshCw, User, Bot, ChevronDown, ChevronRight, Brain, Lightbulb, Image as ImageIcon, Check, Wrench, Loader2, X, ChevronLeft, Edit2 } from 'lucide-react';
+import { Copy, RefreshCw, User, Bot, ChevronLeft, ChevronRight, Image as ImageIcon, Check, Edit2 } from 'lucide-react';
 import type { Message } from '@/lib/types';
-import { MarkdownRenderer } from './MarkdownRenderer';
+import { MarkdownRenderer } from './bubble/MarkdownRenderer';
+import { ThinkingBlock } from './bubble/ThinkingBlock';
+import { ToolBlock } from './bubble/ToolBlock';
+import { GeneratedImageBlock } from './bubble/GeneratedImageBlock';
 import { useChatStore } from '@/stores/chat-store';
 import { useState } from 'react';
 
-interface ThinkingBlockProps {
-  thought: string;
-  timeMs?: number;
-}
-
-function ThinkingBlock({ thought, timeMs }: ThinkingBlockProps) {
-  const [isExpanded, setIsExpanded] = useState(false);
-
-  return (
-    <div>
-      <button
-        onClick={() => setIsExpanded(!isExpanded)}
-        className="flex items-center gap-2 text-xs font-bold transition-opacity hover:opacity-80"
-        style={{ color: 'var(--text-secondary)' }}
-      >
-        <div className="flex items-center gap-1.5">
-          <Lightbulb size={14} />
-          <span>{timeMs ? `Reasoned for ${(timeMs / 1000).toFixed(1)}s` : 'Reasoned'}</span>
-        </div>
-        {isExpanded ? <ChevronDown size={14} className="opacity-60" /> : <ChevronRight size={14} className="opacity-60" />}
-      </button>
-
-      {isExpanded && (
-        <div
-          className="mt-2.5 ml-[6px] pl-3.5 border-l-2 text-xs sm:text-sm"
-          style={{
-            borderColor: 'var(--border)',
-            color: 'var(--text-secondary)',
-          }}
-        >
-          <div className="whitespace-pre-wrap leading-relaxed opacity-80">{thought}</div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-interface ToolBlockProps {
-  toolCalls: any[];
-  allMessages?: Message[];
-}
-
-function ToolBlock({ toolCalls, allMessages }: ToolBlockProps) {
-  const [isExpanded, setIsExpanded] = useState(false);
-  const numTools = toolCalls.length;
-
-  return (
-    <div>
-      <button
-        onClick={() => setIsExpanded(!isExpanded)}
-        className="flex items-center gap-2 text-xs font-bold transition-opacity hover:opacity-80"
-        style={{ color: 'var(--text-secondary)' }}
-      >
-        <div className="flex items-center gap-1.5">
-          <Wrench size={14} />
-          <span>Used {numTools} tool{numTools !== 1 ? 's' : ''}</span>
-        </div>
-        {isExpanded ? <ChevronDown size={14} className="opacity-60" /> : <ChevronRight size={14} className="opacity-60" />}
-      </button>
-
-      {isExpanded && (
-        <div className="mt-3 ml-1 relative flex flex-col gap-0">
-          {/* Vertical connecting line */}
-          {toolCalls.length > 1 && (
-            <div 
-              className="absolute left-[11px] top-[18px] bottom-[18px] w-[2px] rounded-full z-0" 
-              style={{ background: 'var(--border)' }} 
-            />
-          )}
-          
-          {toolCalls.map((tc, i) => {
-            const toolCallId = tc.toolCall?.id;
-            let isCompleted = false;
-            let isError = false;
-            if (allMessages && toolCallId) {
-              for (const m of allMessages) {
-                const res = m.content.find(c => c.type === 'tool_result' && c.toolResult?.toolCallId === toolCallId);
-                if (res && res.toolResult) {
-                  isCompleted = true;
-                  isError = res.toolResult.isError || false;
-                  break;
-                }
-              }
-            }
-
-            return (
-              <div key={i} className="flex items-center gap-3 relative z-10 py-1.5">
-                <div 
-                  className="w-6 h-6 flex items-center justify-center rounded-full"
-                  style={{ background: 'var(--bg-primary)' }}
-                >
-                  {isCompleted ? (
-                    <div 
-                      className="w-5 h-5 flex items-center justify-center rounded-full"
-                      style={{ 
-                        background: isError ? 'rgba(239, 68, 68, 0.15)' : 'rgba(16, 185, 129, 0.15)',
-                        color: isError ? 'var(--error)' : 'var(--success)'
-                      }}
-                    >
-                      {isError ? <X size={12} strokeWidth={3} /> : <Check size={12} strokeWidth={3} />}
-                    </div>
-                  ) : (
-                    <div 
-                      className="w-5 h-5 flex items-center justify-center rounded-full"
-                      style={{ background: 'var(--bg-tertiary)', color: 'var(--text-tertiary)' }}
-                    >
-                      <Loader2 size={12} className="animate-spin" />
-                    </div>
-                  )}
-                </div>
-                
-                <span className="text-xs font-medium" style={{ color: 'var(--text-secondary)' }}>
-                  {tc.toolCall?.name === 'web_search'
-                    ? 'Searched web'
-                    : tc.toolCall?.name === 'calculator'
-                      ? 'Calculated'
-                      : tc.toolCall?.name === 'weather'
-                        ? 'Got weather'
-                        : tc.toolCall?.name === 'image_generation'
-                          ? 'Generated image'
-                          : `Used ${tc.toolCall?.name}`}
-                  {isError && <span className="ml-1" style={{ color: 'var(--error)' }}>(Failed)</span>}
-                </span>
-              </div>
-            );
-          })}
-        </div>
-      )}
-    </div>
-  );
-}
-
-interface GeneratedImageBlockProps {
-  img: { imageUrl?: string; imagePrompt?: string };
-}
-
-function GeneratedImageBlock({ img }: GeneratedImageBlockProps) {
-  const [isExpanded, setIsExpanded] = useState(false);
-
-  if (!img.imageUrl) return null;
-
-  return (
-    <div className="mb-3">
-      <div className="inline-block rounded-2xl overflow-hidden shadow-lg max-w-full sm:max-w-sm border" style={{ borderColor: 'var(--border)' }}>
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={img.imageUrl}
-          alt={img.imagePrompt || 'Generated image'}
-          className="w-full h-auto"
-        />
-        {img.imagePrompt && (
-          <div
-            className="flex flex-col border-t"
-            style={{
-              background: 'var(--bg-tertiary)',
-              borderColor: 'var(--border)'
-            }}
-          >
-            <button
-              onClick={() => setIsExpanded(!isExpanded)}
-              className="flex items-center justify-between w-full px-3.5 py-2.5 text-xs font-medium focus:outline-none hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
-              style={{ color: 'var(--text-secondary)' }}
-            >
-              <span>{isExpanded ? 'Hide prompt' : 'Show prompt'}</span>
-              {isExpanded ? <ChevronDown size={14} className="opacity-60" /> : <ChevronRight size={14} className="opacity-60" />}
-            </button>
-            {isExpanded && (
-              <div
-                className="px-3.5 pb-3 pt-0 text-xs leading-relaxed animate-fade-in opacity-80"
-                style={{ color: 'var(--text-secondary)' }}
-              >
-                {img.imagePrompt}
-              </div>
-            )}
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
 
 interface MessageBubbleProps {
   message: Message;
   allMessages?: Message[];
+  isGenerating?: boolean;
+  isLatestAssistantMessage?: boolean;
 }
 
-export function MessageBubble({ message, allMessages }: MessageBubbleProps) {
+export function MessageBubble({ message, allMessages, isGenerating, isLatestAssistantMessage }: MessageBubbleProps) {
   const regenerateMessage = useChatStore((s) => s.regenerateMessage);
   const editMessage = useChatStore((s) => s.editMessage);
   const switchToBranch = useChatStore((s) => s.switchToBranch);
@@ -243,6 +68,12 @@ export function MessageBubble({ message, allMessages }: MessageBubbleProps) {
         break;
       }
     }
+    
+    // If a response is currently generating at the end of the conversation, treat the last assistant message as continued
+    if (!isContinued && isGenerating && isLatestAssistantMessage) {
+      isContinued = true;
+    }
+    
     // Check backward for previous assistant message without intervening user message
     for (let i = msgIndex - 1; i >= 0; i--) {
       if (allMessages[i].role === 'user') break;
@@ -319,12 +150,7 @@ export function MessageBubble({ message, allMessages }: MessageBubbleProps) {
             </div>
           )}
 
-          {/* Tool calls */}
-          {toolCalls.length > 0 && (
-            <div className="flex flex-col gap-1">
-              <ToolBlock toolCalls={toolCalls} allMessages={allMessages} />
-            </div>
-          )}
+
 
           {/* Text content */}
           {textContent && (
@@ -430,8 +256,15 @@ export function MessageBubble({ message, allMessages }: MessageBubbleProps) {
             </div>
           )}
 
+          {/* Tool calls */}
+          {toolCalls.length > 0 && (
+            <div className="flex flex-col gap-1 mt-1">
+              <ToolBlock toolCalls={toolCalls} allMessages={allMessages} />
+            </div>
+          )}
+
           {/* Actions for assistant messages */}
-          {!isUser && textContent && (
+          {!isUser && textContent && !isContinued && (
             <div className="flex items-center gap-1 mt-2 animate-fade-in" style={{ animationDuration: '0.3s' }}>
               {totalSiblings > 1 && (
                 <div className="flex items-center gap-1 text-xs font-medium transition-opacity mr-2" style={{ color: 'var(--text-secondary)' }}>

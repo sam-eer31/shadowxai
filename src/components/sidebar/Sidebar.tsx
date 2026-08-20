@@ -2,79 +2,34 @@
 
 import Image from 'next/image';
 
-import { useState, useMemo, useEffect, useRef } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import {
   Search,
   Settings,
   Wrench,
   PanelLeftClose,
   PanelLeftOpen,
-  Trash2,
   SquarePen,
   X,
-  MoreVertical,
-  Edit3,
-  Check,
-  Loader2,
 } from 'lucide-react';
 import { useChatStore } from '@/stores/chat-store';
 import { useUIStore } from '@/stores/ui-store';
-import { Conversation } from '@/lib/types';
-
-// Helper to group by date
-function groupConversations(conversations: Conversation[]) {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-
-  const yesterday = new Date(today);
-  yesterday.setDate(yesterday.getDate() - 1);
-
-  const last7Days = new Date(today);
-  last7Days.setDate(last7Days.getDate() - 7);
-
-  const last30Days = new Date(today);
-  last30Days.setDate(last30Days.getDate() - 30);
-
-  const groups: Record<string, Conversation[]> = {
-    Today: [],
-    Yesterday: [],
-    'Previous 7 Days': [],
-    'Previous 30 Days': [],
-    Older: [],
-  };
-
-  conversations.forEach((conv) => {
-    const d = new Date(conv.createdAt || Date.now());
-    if (d >= today) groups['Today'].push(conv);
-    else if (d >= yesterday) groups['Yesterday'].push(conv);
-    else if (d >= last7Days) groups['Previous 7 Days'].push(conv);
-    else if (d >= last30Days) groups['Previous 30 Days'].push(conv);
-    else groups['Older'].push(conv);
-  });
-
-  return groups;
-}
+import { groupConversations } from '@/lib/utils/date-grouping';
+import { SidebarItem } from './SidebarItem';
 
 export function Sidebar() {
   const [searchQuery, setSearchQuery] = useState('');
   const [isMobile, setIsMobile] = useState(false);
   const [activeMenuId, setActiveMenuId] = useState<string | null>(null);
+  
   const conversations = useChatStore((s) => s.conversations);
-  const activeId = useChatStore((s) => s.activeConversationId);
-  const generations = useChatStore((s) => s.generations);
   const newChat = useChatStore((s) => s.newChat);
-  const setActive = useChatStore((s) => s.setActiveConversation);
-  const deleteConv = useChatStore((s) => s.deleteConversation);
-  const renameConv = useChatStore((s) => s.renameConversation);
+  
   const sidebarOpen = useUIStore((s) => s.sidebarOpen);
   const toggleSidebar = useUIStore((s) => s.toggleSidebar);
   const setSidebarOpen = useUIStore((s) => s.setSidebarOpen);
   const openSettings = useUIStore((s) => s.openSettings);
   const openTools = useUIStore((s) => s.openToolsMarketplace);
-
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [editTitle, setEditTitle] = useState('');
-  const editInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const checkMobile = () => {
@@ -91,12 +46,15 @@ export function Sidebar() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Auto-close mobile menu after 3 seconds
   useEffect(() => {
-    if (editingId && editInputRef.current) {
-      editInputRef.current.focus();
-      editInputRef.current.select();
+    if (activeMenuId !== null) {
+      const timer = setTimeout(() => {
+        setActiveMenuId(null);
+      }, 3000);
+      return () => clearTimeout(timer);
     }
-  }, [editingId]);
+  }, [activeMenuId]);
 
   const filtered = useMemo(() => {
     if (!searchQuery.trim()) return conversations;
@@ -105,19 +63,6 @@ export function Sidebar() {
   }, [conversations, searchQuery]);
 
   const grouped = useMemo(() => groupConversations(filtered), [filtered]);
-
-  const startRename = (id: string, title: string) => {
-    setEditingId(id);
-    setEditTitle(title);
-    setActiveMenuId(null);
-  };
-
-  const finishRename = () => {
-    if (editingId && editTitle.trim()) {
-      renameConv(editingId, editTitle.trim());
-    }
-    setEditingId(null);
-  };
 
   const handleSidebarItemClick = () => {
     if (isMobile) {
@@ -152,7 +97,7 @@ export function Sidebar() {
           <div className="flex items-center min-w-0">
             <button
               onClick={toggleSidebar}
-              className="w-10 h-10 flex items-center justify-center rounded-xl transition-colors hover:bg-black/10 dark:hover:bg-white/10 active:scale-95 shrink-0"
+              className="w-10 h-10 flex items-center justify-center rounded-xl transition-colors hover:bg-black/5 dark:hover:bg-white/5 active:scale-95 shrink-0"
               style={{ color: 'var(--text-secondary)' }}
               title={sidebarOpen ? 'Collapse sidebar' : 'Expand sidebar'}
               aria-label="Toggle sidebar"
@@ -179,7 +124,7 @@ export function Sidebar() {
               newChat();
               handleSidebarItemClick();
             }}
-            className="w-full flex items-center rounded-xl transition-all duration-150 overflow-hidden h-10 hover:bg-black/10 dark:hover:bg-white/10 active:scale-[0.98] group"
+            className="w-full flex items-center rounded-xl transition-all duration-150 overflow-hidden h-10 hover:bg-black/5 dark:hover:bg-white/5 active:scale-[0.98] group"
             style={{
               color: 'var(--text-primary)',
             }}
@@ -201,7 +146,7 @@ export function Sidebar() {
           <div
             className={`
               w-full flex items-center rounded-xl transition-colors overflow-hidden h-10
-              ${sidebarOpen ? 'bg-black/5 dark:bg-white/5 border' : 'hover:bg-black/10 dark:hover:bg-white/10 cursor-pointer'}
+              ${sidebarOpen ? 'bg-black/5 dark:bg-white/5 border' : 'hover:bg-black/5 dark:hover:bg-white/5 cursor-pointer'}
             `}
             style={{
               borderColor: 'var(--border)',
@@ -232,7 +177,7 @@ export function Sidebar() {
                   e.stopPropagation();
                   setSearchQuery('');
                 }}
-                className="p-1 rounded-full hover:bg-black/10 dark:hover:bg-white/10 mr-2"
+                className="p-1 rounded-full hover:bg-black/5 dark:hover:bg-white/5 mr-2"
               >
                 <X size={12} />
               </button>
@@ -263,157 +208,15 @@ export function Sidebar() {
                   >
                     {label}
                   </div>
-                  {items.map((conv) => {
-                    const isSelected = activeId === conv.id;
-                    const isMenuOpen = activeMenuId === conv.id;
-                    const isGenerating = generations[conv.id]?.isGenerating;
-
-                    return (
-                      <div
-                        key={conv.id}
-                        className={`
-                          group relative flex items-center px-3 py-2.5 my-0.5 rounded-xl cursor-pointer
-                          transition-all duration-150 min-h-[40px] touch-manipulation
-                          ${
-                            isSelected
-                              ? 'bg-black/10 dark:bg-white/10 font-medium'
-                              : 'hover:bg-black/5 dark:hover:bg-white/5 active:bg-black/10 dark:active:bg-white/10'
-                          }
-                        `}
-                        style={{
-                          color: isSelected ? 'var(--text-primary)' : 'var(--text-secondary)',
-                        }}
-                        onClick={() => {
-                          setActive(conv.id);
-                          handleSidebarItemClick();
-                        }}
-                      >
-                        {editingId === conv.id ? (
-                          <div className="flex items-center gap-1 w-full" onClick={(e) => e.stopPropagation()}>
-                            <input
-                              ref={editInputRef}
-                              type="text"
-                              value={editTitle}
-                              onChange={(e) => setEditTitle(e.target.value)}
-                              onBlur={finishRename}
-                              onKeyDown={(e) => {
-                                if (e.key === 'Enter') finishRename();
-                                if (e.key === 'Escape') setEditingId(null);
-                              }}
-                              className="flex-1 text-sm bg-transparent outline-none border-b py-0.5"
-                              style={{ borderColor: 'var(--accent)', color: 'var(--text-primary)' }}
-                            />
-                            <button
-                              onClick={finishRename}
-                              className="p-1 rounded hover:bg-black/10 dark:hover:bg-white/10 text-emerald-500"
-                            >
-                              <Check size={14} />
-                            </button>
-                          </div>
-                        ) : (
-                          <div className="flex-1 flex items-center min-w-0 pr-6 gap-2">
-                            <span className="text-sm truncate">{conv.title}</span>
-                            {isGenerating && (
-                              <Loader2 size={12} className="animate-spin shrink-0 text-emerald-500" />
-                            )}
-                          </div>
-                        )}
-
-                        {/* Mobile and Desktop Action buttons */}
-                        {editingId !== conv.id && (
-                          <>
-                            {/* Desktop hover actions */}
-                            <div
-                              className={`
-                                hidden lg:flex absolute right-1.5 top-1/2 -translate-y-1/2 items-center gap-0.5
-                                opacity-0 group-hover:opacity-100 transition-opacity z-10
-                                px-1 rounded-lg backdrop-blur-md
-                              `}
-                              style={{
-                                background: isSelected
-                                  ? 'var(--bg-secondary)'
-                                  : 'var(--bg-secondary)',
-                              }}
-                            >
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  startRename(conv.id, conv.title);
-                                }}
-                                className="p-1.5 rounded-md hover:bg-black/10 dark:hover:bg-white/10 transition-colors"
-                                title="Rename"
-                              >
-                                <Edit3 size={13} />
-                              </button>
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  deleteConv(conv.id);
-                                }}
-                                className="p-1.5 rounded-md hover:bg-red-500/20 transition-colors text-red-500"
-                                title="Delete"
-                              >
-                                <Trash2 size={13} />
-                              </button>
-                            </div>
-
-                            {/* Mobile 3-dot trigger & dropdown */}
-                            <div className="lg:hidden absolute right-1 top-1/2 -translate-y-1/2">
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setActiveMenuId(isMenuOpen ? null : conv.id);
-                                }}
-                                className="p-2 rounded-lg hover:bg-black/10 dark:hover:bg-white/10 text-gray-400"
-                                aria-label="Conversation options"
-                              >
-                                <MoreVertical size={16} />
-                              </button>
-
-                              {isMenuOpen && (
-                                <>
-                                  <div
-                                    className="fixed inset-0 z-30"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      setActiveMenuId(null);
-                                    }}
-                                  />
-                                  <div
-                                    className="absolute right-0 top-full mt-1 w-32 rounded-xl border shadow-xl py-1 z-40 animate-fade-in"
-                                    style={{
-                                      background: 'var(--bg-primary)',
-                                      borderColor: 'var(--border)',
-                                    }}
-                                    onClick={(e) => e.stopPropagation()}
-                                  >
-                                    <button
-                                      onClick={() => startRename(conv.id, conv.title)}
-                                      className="w-full flex items-center gap-2 px-3 py-2 text-xs hover:bg-black/5 dark:hover:bg-white/5"
-                                      style={{ color: 'var(--text-primary)' }}
-                                    >
-                                      <Edit3 size={14} />
-                                      Rename
-                                    </button>
-                                    <button
-                                      onClick={() => {
-                                        deleteConv(conv.id);
-                                        setActiveMenuId(null);
-                                      }}
-                                      className="w-full flex items-center gap-2 px-3 py-2 text-xs hover:bg-red-500/10 text-red-500"
-                                    >
-                                      <Trash2 size={14} />
-                                      Delete
-                                    </button>
-                                  </div>
-                                </>
-                              )}
-                            </div>
-                          </>
-                        )}
-                      </div>
-                    );
-                  })}
+                  {items.map((conv) => (
+                    <SidebarItem
+                      key={conv.id}
+                      conv={conv}
+                      activeMenuId={activeMenuId}
+                      setActiveMenuId={setActiveMenuId}
+                      handleSidebarItemClick={handleSidebarItemClick}
+                    />
+                  ))}
                 </div>
               );
             })
@@ -432,7 +235,7 @@ export function Sidebar() {
               openTools();
               handleSidebarItemClick();
             }}
-            className="w-full flex items-center rounded-xl transition-colors hover:bg-black/10 dark:hover:bg-white/10 overflow-hidden h-10"
+            className="w-full flex items-center rounded-xl transition-colors hover:bg-black/5 dark:hover:bg-white/5 overflow-hidden h-10"
             style={{ color: 'var(--text-secondary)' }}
             title="Tools & Marketplace"
           >
@@ -453,7 +256,7 @@ export function Sidebar() {
               openSettings();
               handleSidebarItemClick();
             }}
-            className="w-full flex items-center rounded-xl transition-colors hover:bg-black/10 dark:hover:bg-white/10 overflow-hidden h-10"
+            className="w-full flex items-center rounded-xl transition-colors hover:bg-black/5 dark:hover:bg-white/5 overflow-hidden h-10"
             style={{ color: 'var(--text-secondary)' }}
             title="Settings"
           >

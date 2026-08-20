@@ -131,19 +131,35 @@ export function ChatArea() {
             onScroll={handleScroll}
           >
             <div ref={innerContentRef} className="max-w-3xl mx-auto px-3 sm:px-6 py-4 sm:py-6 w-full">
-              {activeMessages.map((msg) => (
-                <MessageBubble key={msg.id} message={msg} allMessages={conv.messages} />
-              ))}
+              {(() => {
+                const latestAssistantMessageId = activeMessages.slice().reverse().find(m => m.role === 'assistant')?.id;
+                const lastVisibleRole = activeMessages.slice().reverse().find(m => m.role !== 'tool')?.role;
+                
+                return (
+                  <>
+                    {activeMessages.map((msg) => (
+                      <MessageBubble 
+                        key={msg.id} 
+                        message={msg} 
+                        allMessages={conv.messages} 
+                        isGenerating={isGenerating}
+                        isLatestAssistantMessage={msg.id === latestAssistantMessageId}
+                      />
+                    ))}
 
-              {/* Streaming response */}
-              {isGenerating && (
-                <StreamingBubble
-                  content={streamingContent}
-                  thought={streamingThought}
-                  thoughtTimeMs={thoughtTimeMs}
-                  toolCalls={pendingToolCalls}
-                />
-              )}
+                    {/* Streaming response */}
+                    {isGenerating && (
+                      <StreamingBubble
+                        content={streamingContent}
+                        thought={streamingThought}
+                        thoughtTimeMs={thoughtTimeMs}
+                        toolCalls={pendingToolCalls}
+                        isContinuation={lastVisibleRole === 'assistant'}
+                      />
+                    )}
+                  </>
+                );
+              })()}
             </div>
           </div>
 

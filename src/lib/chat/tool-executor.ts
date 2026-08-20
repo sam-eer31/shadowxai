@@ -1,5 +1,5 @@
 import type { ToolCall, ToolResult } from '@/lib/types';
-import { getToolByName } from './registry';
+import { getToolByName } from '../tools/registry';
 
 const MAX_TOOL_CALLS_PER_TURN = 5;
 const TOOL_TIMEOUT_MS = 30000;

@@ -24,23 +24,21 @@ export function ToolCard({ tool, enabled, onToggle }: ToolCardProps) {
 
   return (
     <div
-      className="flex items-start gap-3 p-3.5 sm:p-4 rounded-2xl border transition-all duration-200"
+      className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl border transition-all duration-200"
       style={{
-        borderColor: enabled ? 'var(--accent)' : 'var(--border)',
-        background: enabled ? 'var(--accent-light)' : 'var(--bg-secondary)',
+        borderColor: 'var(--border)',
+        background: enabled ? 'rgba(16, 185, 129, 0.06)' : 'var(--bg-secondary)',
       }}
     >
       {/* Icon */}
       <div
-        className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 mt-0.5"
+        className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
         style={{
-          background: enabled
-            ? 'var(--accent)'
-            : 'var(--bg-tertiary)',
-          color: enabled ? 'var(--bg-primary)' : 'var(--text-secondary)',
+          background: 'var(--bg-tertiary)',
+          color: 'var(--text-secondary)',
         }}
       >
-        <Icon size={18} />
+        <Icon size={15} />
       </div>
 
       {/* Info */}
@@ -49,11 +47,11 @@ export function ToolCard({ tool, enabled, onToggle }: ToolCardProps) {
           onClick={() => setIsExpanded(!isExpanded)}
           className="flex items-center gap-2 flex-wrap text-left w-full focus:outline-none transition-opacity hover:opacity-80"
         >
-          <h3 className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
+          <h3 className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
             {tool.name.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())}
           </h3>
           <span
-            className="text-[10px] px-2 py-0.5 rounded-full font-medium"
+            className="text-[10px] px-1.5 py-0.5 rounded-full font-medium"
             style={{
               background: 'var(--bg-tertiary)',
               color: 'var(--text-tertiary)',
@@ -62,16 +60,16 @@ export function ToolCard({ tool, enabled, onToggle }: ToolCardProps) {
             {tool.category}
           </span>
           <div className="ml-0 sm:ml-auto" style={{ color: 'var(--text-tertiary)' }}>
-            {isExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+            {isExpanded ? <ChevronDown size={13} /> : <ChevronRight size={13} />}
           </div>
         </button>
         {isExpanded && (
-          <p className="text-xs mt-2 leading-relaxed animate-fade-in" style={{ color: 'var(--text-secondary)' }}>
+          <p className="text-xs mt-1.5 leading-relaxed animate-fade-in" style={{ color: 'var(--text-secondary)' }}>
             {tool.description}
           </p>
         )}
         {!available && tool.requiresConfig && (
-          <p className="text-[11px] mt-1.5 font-medium" style={{ color: 'var(--warning)' }}>
+          <p className="text-[11px] mt-1 font-medium" style={{ color: 'var(--warning)' }}>
             ⚠ Requires{' '}
             {tool.requiresProvider === 'ollama'
               ? 'Ollama'
@@ -86,17 +84,17 @@ export function ToolCard({ tool, enabled, onToggle }: ToolCardProps) {
       {/* Toggle */}
       <button
         onClick={() => onToggle(tool.name)}
-        className="relative w-12 h-7 rounded-full transition-colors duration-200 shrink-0 mt-1 cursor-pointer focus:outline-none"
+        className="relative w-10 h-6 rounded-full transition-colors duration-200 shrink-0 cursor-pointer focus:outline-none"
         style={{
-          background: enabled ? 'var(--accent)' : 'var(--bg-tertiary)',
+          background: enabled ? '#10b981' : 'var(--bg-tertiary)',
         }}
         aria-label={`Toggle ${tool.name}`}
       >
         <div
-          className="absolute top-1 w-5 h-5 rounded-full shadow-md transition-transform duration-200"
+          className="absolute top-[3px] w-[18px] h-[18px] rounded-full shadow-sm transition-transform duration-200"
           style={{
-            background: 'var(--bg-primary)',
-            transform: enabled ? 'translateX(24px)' : 'translateX(4px)',
+            background: '#ffffff',
+            transform: enabled ? 'translateX(19px)' : 'translateX(3px)',
           }}
         />
       </button>

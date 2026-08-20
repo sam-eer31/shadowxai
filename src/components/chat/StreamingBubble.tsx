@@ -4,7 +4,7 @@ import Image from 'next/image';
 
 import { Bot, ChevronDown, ChevronRight, Brain, Lightbulb, Image as ImageIcon, Wrench, Loader2 } from 'lucide-react';
 import type { ToolCall } from '@/lib/types';
-import { MarkdownRenderer } from './MarkdownRenderer';
+import { MarkdownRenderer } from './bubble/MarkdownRenderer';
 import { useState } from 'react';
 
 interface StreamingBubbleProps {
@@ -12,14 +12,15 @@ interface StreamingBubbleProps {
   thought?: string;
   thoughtTimeMs?: number;
   toolCalls: ToolCall[];
+  isContinuation?: boolean;
 }
 
-export function StreamingBubble({ content, thought, thoughtTimeMs, toolCalls }: StreamingBubbleProps) {
+export function StreamingBubble({ content, thought, thoughtTimeMs, toolCalls, isContinuation }: StreamingBubbleProps) {
   const [isExpanded, setIsExpanded] = useState(true);
   const [isToolsExpanded, setIsToolsExpanded] = useState(true);
 
   return (
-    <div className="mb-5 sm:mb-6 animate-fade-in">
+    <div className={`mb-5 sm:mb-6 animate-fade-in ${isContinuation ? 'mt-2.5' : ''}`}>
       <div className="flex gap-2.5 sm:gap-3.5">
         <div className="min-w-0 flex-1 flex flex-col gap-2.5">
           {/* Streaming thought */}
@@ -48,17 +49,43 @@ export function StreamingBubble({ content, thought, thoughtTimeMs, toolCalls }: 
                   }}
                 >
                   <div className="whitespace-pre-wrap leading-relaxed opacity-80">
-                    {thought}
-                    {!content && <span className="streaming-cursor ml-1" />}
+                    {thought}{!content && ' ▏'}
                   </div>
                 </div>
               )}
             </div>
           )}
 
+
+
+          {/* Streaming text */}
+          {content ? (
+            <div className="text-sm leading-relaxed markdown-body w-full" style={{ color: 'var(--text-primary)' }}>
+              <MarkdownRenderer content={content + ' ▏'} />
+            </div>
+          ) : !thought && toolCalls.length === 0 ? (
+            <div className="flex items-center gap-2 py-1">
+              <div className="flex gap-1">
+                {[0, 1, 2].map((i) => (
+                  <div
+                    key={i}
+                    className="w-1.5 h-1.5 rounded-full"
+                    style={{
+                      background: 'var(--accent)',
+                      animation: `pulse-dot 1.4s ease-in-out ${i * 0.2}s infinite`,
+                    }}
+                  />
+                ))}
+              </div>
+              <span className="text-xs font-medium" style={{ color: 'var(--text-tertiary)' }}>
+                Generating response...
+              </span>
+            </div>
+          ) : null}
+
           {/* Active tool calls */}
           {toolCalls.length > 0 && (
-            <div>
+            <div className="mt-1">
               <button
                 onClick={() => setIsToolsExpanded(!isToolsExpanded)}
                 className="flex items-center gap-2 text-xs font-bold transition-opacity hover:opacity-80"
@@ -113,32 +140,6 @@ export function StreamingBubble({ content, thought, thoughtTimeMs, toolCalls }: 
               )}
             </div>
           )}
-
-          {/* Streaming text */}
-          {content ? (
-            <div className="text-sm leading-relaxed markdown-body w-full" style={{ color: 'var(--text-primary)' }}>
-              <MarkdownRenderer content={content} />
-              <span className="streaming-cursor" />
-            </div>
-          ) : !thought && toolCalls.length === 0 ? (
-            <div className="flex items-center gap-2 py-1">
-              <div className="flex gap-1">
-                {[0, 1, 2].map((i) => (
-                  <div
-                    key={i}
-                    className="w-1.5 h-1.5 rounded-full"
-                    style={{
-                      background: 'var(--accent)',
-                      animation: `pulse-dot 1.4s ease-in-out ${i * 0.2}s infinite`,
-                    }}
-                  />
-                ))}
-              </div>
-              <span className="text-xs font-medium" style={{ color: 'var(--text-tertiary)' }}>
-                Generating response...
-              </span>
-            </div>
-          ) : null}
 
           {/* Skeleton loaders for pending images */}
           {toolCalls

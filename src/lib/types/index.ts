@@ -200,6 +200,7 @@ export interface AppSettings {
   selectedImageModel?: string;
   thinkingMode?: ThinkingMode;
   modelThinkingModes?: Record<string, ThinkingMode>;
+  userLocation?: string;
 }
 
 // --- Export / Import ---
