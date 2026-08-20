@@ -659,7 +659,8 @@ function PuterConfig() {
                         <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '650px' }}>
                           <thead>
                             <tr>
-                              <th style={{ color: '#8e97a5', fontSize: '12px', textTransform: 'uppercase', padding: '13px 15px', textAlign: 'left', borderBottom: '1px solid #292e36' }}>API</th>
+                              <th style={{ color: '#8e97a5', fontSize: '12px', textTransform: 'uppercase', padding: '13px 15px', textAlign: 'left', borderBottom: '1px solid #292e36' }}>Model</th>
+                              <th style={{ color: '#8e97a5', fontSize: '12px', textTransform: 'uppercase', padding: '13px 15px', textAlign: 'left', borderBottom: '1px solid #292e36' }}>Credits Used</th>
                               <th style={{ color: '#8e97a5', fontSize: '12px', textTransform: 'uppercase', padding: '13px 15px', textAlign: 'left', borderBottom: '1px solid #292e36' }}>Calls</th>
                               <th style={{ color: '#8e97a5', fontSize: '12px', textTransform: 'uppercase', padding: '13px 15px', textAlign: 'left', borderBottom: '1px solid #292e36' }}>Units</th>
                             </tr>
@@ -667,7 +668,7 @@ function PuterConfig() {
                           <tbody>
                             {(() => {
                               if (!usage?.usage || Object.keys(usage.usage).length === 0) {
-                                return <tr><td colSpan={3} style={{ color: '#8e97a5', padding: '20px', textAlign: 'left', fontSize: '14px' }}>No API usage recorded yet.</td></tr>;
+                                return <tr><td colSpan={4} style={{ color: '#8e97a5', padding: '20px', textAlign: 'left', fontSize: '14px' }}>No API usage recorded yet.</td></tr>;
                               }
                               
                               const combined: Record<string, any> = {
@@ -701,7 +702,7 @@ function PuterConfig() {
                               const finalUsage = Object.entries(combined).filter(([_, stats]) => stats.count > 0 || stats.cost > 0);
                               
                               if (finalUsage.length === 0) {
-                                return <tr><td colSpan={3} style={{ color: '#8e97a5', padding: '20px', textAlign: 'left', fontSize: '14px' }}>No model usage recorded yet.</td></tr>;
+                                return <tr><td colSpan={4} style={{ color: '#8e97a5', padding: '20px', textAlign: 'left', fontSize: '14px' }}>No model usage recorded yet.</td></tr>;
                               }
                               
                               return finalUsage
@@ -709,6 +710,7 @@ function PuterConfig() {
                                 .map(([apiName, stats]: [string, any], index, array) => (
                                   <tr key={apiName}>
                                     <td style={{ fontSize: '14px', padding: '13px 15px', borderBottom: index === array.length - 1 ? 'none' : '1px solid #292e36' }}>{apiName}</td>
+                                    <td style={{ fontSize: '14px', padding: '13px 15px', borderBottom: index === array.length - 1 ? 'none' : '1px solid #292e36', color: '#72e6a3', fontWeight: 'bold' }}>{formatNum(stats.cost)}</td>
                                     <td style={{ fontSize: '14px', padding: '13px 15px', borderBottom: index === array.length - 1 ? 'none' : '1px solid #292e36' }}>{formatNum(stats.count)}</td>
                                     <td style={{ fontSize: '14px', padding: '13px 15px', borderBottom: index === array.length - 1 ? 'none' : '1px solid #292e36' }}>{formatNum(stats.units)}</td>
                                   </tr>
