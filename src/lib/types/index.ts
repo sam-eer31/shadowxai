@@ -79,6 +79,20 @@ export interface Conversation {
   model: string;
   messages: Message[];
   currentNodeId?: string;
+  isGeneratingTitle?: boolean;
+}
+
+// --- Artifacts ---
+
+export interface Artifact {
+  id: string;
+  conversationId: string;
+  filename: string;
+  extension: string;
+  language: string;
+  content: string;
+  createdAt: number;
+  updatedAt: number;
 }
 
 // --- Tool System ---
@@ -95,6 +109,7 @@ export interface JSONSchemaProperty {
   description?: string;
   enum?: string[];
   default?: unknown;
+  items?: JSONSchemaProperty;
 }
 
 export interface ToolDefinition {
@@ -194,7 +209,7 @@ export interface AppSettings {
   activeProvider: ProviderType;
   webSearchProvider: ProviderType;
   selectedModels: Partial<Record<ProviderType, string>>;
-  enabledTools: string[];
+  isWebSearchEnabled: boolean;
   systemPrompt: string;
   contextWindowSize: number;
   selectedImageModel?: string;

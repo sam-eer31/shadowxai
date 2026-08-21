@@ -15,6 +15,7 @@ export function ModelSelector({ onClose }: ModelSelectorProps) {
   const selectedModels = useSettingsStore((s) => s.selectedModels);
   const setSelectedModel = useSettingsStore((s) => s.setSelectedModel);
   const setActiveProvider = useSettingsStore((s) => s.setActiveProvider);
+  const getEnabledProvidersList = useSettingsStore((s) => s.getEnabledProvidersList);
 
   const [models, setModels] = useState<AIModel[]>([]);
   const [loading, setLoading] = useState(false);
@@ -28,7 +29,8 @@ export function ModelSelector({ onClose }: ModelSelectorProps) {
       setModels([]);
 
       try {
-        const providers = getAllChatProviders().filter((p) => p.isConfigured());
+        const enabledProviderTypes = getEnabledProvidersList();
+        const providers = getAllChatProviders().filter((p) => enabledProviderTypes.includes(p.type));
         
         let allModels: AIModel[] = [];
         
@@ -137,7 +139,7 @@ export function ModelSelector({ onClose }: ModelSelectorProps) {
                   className="text-[11px] font-bold uppercase tracking-wider mb-2 px-1" 
                   style={{ color: 'var(--text-tertiary)' }}
                 >
-                  {providerType === 'puter' ? 'Puter Cloud' : providerType === 'ollama' ? 'Ollama Local / Cloud' : providerType}
+                  {providerType === 'puter' ? 'Puter Cloud' : providerType === 'ollama' ? 'Ollama' : providerType}
                 </div>
                 <div className="space-y-1">
                   {providerModels.map((model) => {

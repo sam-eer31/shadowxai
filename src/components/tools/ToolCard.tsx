@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Globe, Calculator, CloudSun, Clock, Image, ChevronDown, ChevronRight } from 'lucide-react';
+import { Globe, Calculator, CloudSun, Clock, Image, ChevronDown, ChevronRight, FileCode } from 'lucide-react';
 import type { ToolDefinition } from '@/lib/types';
 import { isToolAvailable } from '@/lib/tools/registry';
 
@@ -9,25 +9,24 @@ const ICONS: Record<string, React.ElementType> = {
   'cloud-sun': CloudSun,
   clock: Clock,
   image: Image,
+  code: FileCode,
 };
 
 interface ToolCardProps {
   tool: ToolDefinition;
-  enabled: boolean;
-  onToggle: (name: string) => void;
 }
 
-export function ToolCard({ tool, enabled, onToggle }: ToolCardProps) {
+export function ToolCard({ tool }: ToolCardProps) {
   const Icon = ICONS[tool.icon] || Globe;
   const available = isToolAvailable(tool);
   const [isExpanded, setIsExpanded] = useState(false);
 
   return (
     <div
-      className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl border transition-all duration-200"
+      className="flex items-start gap-2.5 px-3 py-2.5 rounded-xl border transition-all duration-200"
       style={{
         borderColor: 'var(--border)',
-        background: enabled ? 'rgba(16, 185, 129, 0.06)' : 'var(--bg-secondary)',
+        background: 'var(--bg-secondary)',
       }}
     >
       {/* Icon */}
@@ -45,7 +44,7 @@ export function ToolCard({ tool, enabled, onToggle }: ToolCardProps) {
       <div className="flex-1 min-w-0 pr-1">
         <button
           onClick={() => setIsExpanded(!isExpanded)}
-          className="flex items-center gap-2 flex-wrap text-left w-full focus:outline-none transition-opacity hover:opacity-80"
+          className="flex items-center gap-2 flex-wrap text-left w-full min-h-[32px] focus:outline-none transition-opacity hover:opacity-80"
         >
           <h3 className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
             {tool.name.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())}
@@ -74,7 +73,7 @@ export function ToolCard({ tool, enabled, onToggle }: ToolCardProps) {
             {tool.name === 'web_search'
               ? 'Tavily API Key'
               : tool.name === 'image_generation'
-                ? 'Puter Sign In or Cloudflare'
+                ? 'Puter Sign In or Cloudflare API Key'
                 : tool.requiresProvider === 'ollama'
                   ? 'Ollama'
                   : tool.requiresConfig?.join(', ').includes('cloudflare')
@@ -84,25 +83,6 @@ export function ToolCard({ tool, enabled, onToggle }: ToolCardProps) {
           </p>
         )}
       </div>
-
-      {/* Toggle */}
-      <button
-        onClick={() => available && onToggle(tool.name)}
-        className={`relative w-10 h-6 rounded-full transition-all duration-200 shrink-0 focus:outline-none ${available ? 'cursor-pointer' : 'cursor-not-allowed opacity-50 grayscale'}`}
-        style={{
-          background: enabled ? '#10b981' : 'var(--bg-tertiary)',
-        }}
-        disabled={!available}
-        aria-label={`Toggle ${tool.name}`}
-      >
-        <div
-          className="absolute top-[3px] w-[18px] h-[18px] rounded-full shadow-sm transition-transform duration-200"
-          style={{
-            background: '#ffffff',
-            transform: enabled ? 'translateX(19px)' : 'translateX(3px)',
-          }}
-        />
-      </button>
     </div>
   );
 }

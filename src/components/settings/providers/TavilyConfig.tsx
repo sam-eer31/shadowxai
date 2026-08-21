@@ -18,7 +18,7 @@ export function TavilyConfig() {
   };
 
   return (
-    <div>
+    <div id="setting-section-tavily">
       <div className="flex items-center justify-between mb-2">
         <h3 className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
           Tavily Search API

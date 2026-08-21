@@ -20,6 +20,7 @@ import { getChatProvider } from '@/lib/providers';
 import { useSettingsStore } from './settings-store';
 import { useUIStore } from './ui-store';
 import { generateResponse } from '@/lib/chat/generation';
+import { generateConversationTitle } from '@/lib/chat/title';
 
 export interface GenerationState {
   isGenerating: boolean;
@@ -142,14 +143,6 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
     // Build user message
     const userContent: MessageContent[] = [{ type: 'text', text }];
-    if (attachments) {
-      for (const att of attachments) {
-        userContent.push({
-          type: 'image',
-          imageUrl: `data:${att.mimeType};base64,${att.data}`,
-        });
-      }
-    }
 
     let conv = get().getActiveConversation();
 
@@ -164,11 +157,14 @@ export const useChatStore = create<ChatState>((set, get) => ({
       parentId: conv?.currentNodeId || 'root',
     };
 
+    let isNewChat = false;
     // Get or create conversation
     if (!conv) {
+      isNewChat = true;
       conv = {
         id: generateId(),
         title: text.slice(0, 60) || 'New Chat',
+        isGeneratingTitle: true,
         createdAt: Date.now(),
         updatedAt: Date.now(),
         provider: settings.activeProvider,
@@ -194,6 +190,29 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
     // Save to DB
     await saveConversation(conv);
+
+    // Background title generation for new chats
+    if (isNewChat) {
+      const convId = conv.id;
+      generateConversationTitle(text).then(async (newTitle) => {
+        const currentConv = get().conversations.find((c) => c.id === convId);
+        if (currentConv) {
+          const updatedConv = {
+            ...currentConv,
+            title: newTitle || currentConv.title,
+            isGeneratingTitle: false,
+            updatedAt: Date.now(),
+          };
+          
+          set((state) => ({
+            conversations: state.conversations.map((c) => 
+              c.id === convId ? updatedConv : c
+            )
+          }));
+          await saveConversation(updatedConv);
+        }
+      });
+    }
 
     // Generate response
     await generateResponse(conv, settings, provider, modelId);
@@ -230,7 +249,16 @@ export const useChatStore = create<ChatState>((set, get) => ({
     const targetMsg = conv.messages.find(m => m.id === messageId);
     if (!targetMsg) return;
 
-    const updated = { ...conv, currentNodeId: targetMsg.parentId, updatedAt: Date.now() };
+    let currentMsg = targetMsg;
+    while (currentMsg && currentMsg.role !== 'user') {
+      const parent = conv.messages.find(m => m.id === currentMsg.parentId);
+      if (!parent || parent.role === 'user') {
+        break;
+      }
+      currentMsg = parent;
+    }
+
+    const updated = { ...conv, currentNodeId: currentMsg.parentId, updatedAt: Date.now() };
     const conversations = get().conversations.map((c) =>
       c.id === updated.id ? updated : c
     );

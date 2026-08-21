@@ -1,5 +1,5 @@
 import { RefObject, ReactNode } from 'react';
-import { ImagePlus, Sparkles, ChevronDown, Brain, Wrench, Square, ArrowUp, Check } from 'lucide-react';
+import { ImagePlus, Sparkles, ChevronDown, Brain, Globe, Square, ArrowUp, Check } from 'lucide-react';
 import type { AIModel } from '@/lib/types';
 
 interface ActionButtonsProps {
@@ -12,8 +12,9 @@ interface ActionButtonsProps {
   currentModel: AIModel | null;
   thinkingMode: string;
   handleThinkingClick: (e: React.MouseEvent<HTMLButtonElement>) => void;
-  enabledTools: string[];
-  openTools: () => void;
+  hasWebSearchKey: boolean;
+  isWebSearchEnabled: boolean;
+  toggleWebSearch: () => void;
   isGenerating: boolean;
   stopGeneration: () => void;
   handleSend: () => void;
@@ -31,8 +32,9 @@ export function ActionButtons({
   currentModel,
   thinkingMode,
   handleThinkingClick,
-  enabledTools,
-  openTools,
+  hasWebSearchKey,
+  isWebSearchEnabled,
+  toggleWebSearch,
   isGenerating,
   stopGeneration,
   handleSend,
@@ -120,19 +122,20 @@ export function ActionButtons({
           </div>
         )}
 
-        {/* Tool Indicator / Quick button */}
-        {enabledTools.length > 0 && (
+        {/* Web Search Toggle */}
+        {hasWebSearchKey && (
           <button
-            onClick={openTools}
-            className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs shrink-0 transition-colors hover:bg-black/10 dark:hover:bg-white/10"
+            onClick={toggleWebSearch}
+            className="flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs font-medium transition-all hover:bg-black/10 dark:hover:bg-white/10 active:scale-95 shrink-0"
             style={{
-              background: 'rgba(16, 185, 129, 0.1)',
-              color: 'var(--success)',
+              color: isWebSearchEnabled ? 'var(--accent)' : 'var(--text-tertiary)',
+              background: isWebSearchEnabled ? 'var(--accent-light)' : 'transparent',
+              border: isWebSearchEnabled ? '1px solid rgba(99, 102, 241, 0.25)' : '1px solid transparent',
             }}
-            title={`${enabledTools.length} tools active`}
+            title={isWebSearchEnabled ? "Web Search Enabled" : "Web Search Disabled"}
           >
-            <Wrench size={11} />
-            <span>{enabledTools.length}</span>
+            <Globe size={12} />
+            <span className="hidden sm:inline">Search</span>
           </button>
         )}
       </div>

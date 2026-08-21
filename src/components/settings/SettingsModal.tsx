@@ -5,9 +5,11 @@ import {
   Settings,
   Palette,
   MessageSquare,
-  Database,
   Shield,
   Key,
+  Wrench,
+  Database,
+  Blocks,
 } from 'lucide-react';
 import { useUIStore } from '@/stores/ui-store';
 
@@ -17,9 +19,13 @@ import { AppearanceTab } from './tabs/AppearanceTab';
 import { ChatTab } from './tabs/ChatTab';
 import { DataTab } from './tabs/DataTab';
 import { AboutTab } from './tabs/AboutTab';
+import { ToolsTab } from './tabs/ToolsTab';
+import { ServicesTab } from './tabs/ServicesTab';
 
 const TABS = [
   { id: 'providers', label: 'Providers', icon: Key },
+  { id: 'services', label: 'Services', icon: Blocks },
+  { id: 'tools', label: 'Capabilities', icon: Wrench },
   { id: 'appearance', label: 'Appearance', icon: Palette },
   { id: 'chat', label: 'Chat', icon: MessageSquare },
   { id: 'data', label: 'Data', icon: Database },
@@ -135,6 +141,8 @@ export function SettingsModal() {
           {/* Tab content area */}
           <div className="flex-1 overflow-y-auto p-4 sm:p-6 overscroll-contain">
             {activeTab === 'providers' && <ProvidersTab />}
+            {activeTab === 'services' && <ServicesTab />}
+            {activeTab === 'tools' && <ToolsTab />}
             {activeTab === 'appearance' && <AppearanceTab />}
             {activeTab === 'chat' && <ChatTab />}
             {activeTab === 'data' && <DataTab />}

@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import Script from "next/script";
 import "./globals.css";
 
 export const viewport: Viewport = {
@@ -33,11 +34,16 @@ export default function RootLayout({
     <html lang="en" className="dark" suppressHydrationWarning>
       <head>
         <link
+          rel="stylesheet"
+          href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css"
+        />
+        <link
           href="https://fonts.googleapis.com/css2?family=Nunito:wght@300;400;500;600;700;800&display=swap"
           rel="stylesheet"
         />
-        <script
-          suppressHydrationWarning
+        <Script
+          id="suppress-warnings"
+          strategy="beforeInteractive"
           dangerouslySetInnerHTML={{
             __html: `
               // Suppress React DevTools warning safely without breaking Fast Refresh
@@ -86,8 +92,9 @@ export default function RootLayout({
             `
           }}
         />
-        <script
-          suppressHydrationWarning
+        <Script
+          id="theme-initializer"
+          strategy="beforeInteractive"
           dangerouslySetInnerHTML={{
             __html: `
               try {

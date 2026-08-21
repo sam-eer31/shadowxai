@@ -81,11 +81,11 @@ export function PuterConfig() {
     <div>
       <div className="flex items-center justify-between mb-2">
         <h3 className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
-          Puter Cloud (GPT-5.6)
+          Puter Cloud
         </h3>
       </div>
       <p className="text-xs mb-3 leading-relaxed" style={{ color: 'var(--text-tertiary)' }}>
-        Access GPT-5.6 Luna natively. Puter uses a user-pays model where your usage is tied to your free Puter account—no API keys required.
+        Access AI models natively. Puter uses a user-pays model where your usage is tied to your free Puter account—no API keys required.
       </p>
       <div className="space-y-3">
         {!isSignedIn ? (
@@ -236,6 +236,7 @@ export function PuterConfig() {
                                 'DeepSeek V4 Flash': { cost: 0, count: 0, units: 0 },
                                 'DeepSeek V4 Flash:free': { cost: 0, count: 0, units: 0 },
                                 'GPT-5.6 Luna': { cost: 0, count: 0, units: 0 },
+                                'GLM-4.7 Flash': { cost: 0, count: 0, units: 0 },
                                 'FLUX.2 Klein 4B': { cost: 0, count: 0, units: 0 },
                                 'GPT Image 1 Mini': { cost: 0, count: 0, units: 0 },
                                 'GPT Image 2': { cost: 0, count: 0, units: 0 }
@@ -273,6 +274,10 @@ export function PuterConfig() {
                                   combined['GPT-5.6 Luna'].cost += itemCost;
                                   combined['GPT-5.6 Luna'].count += itemCount;
                                   combined['GPT-5.6 Luna'].units += itemUnits;
+                                } else if (lower.includes('glm')) {
+                                  combined['GLM-4.7 Flash'].cost += itemCost;
+                                  combined['GLM-4.7 Flash'].count += itemCount;
+                                  combined['GLM-4.7 Flash'].units += itemUnits;
                                 } else if (lower.includes('klein-4b')) {
                                   if (!combined['FLUX.2 Klein 4B']) combined['FLUX.2 Klein 4B'] = { cost: 0, count: 0, units: 0 };
                                   combined['FLUX.2 Klein 4B'].cost += itemCost;

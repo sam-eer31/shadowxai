@@ -54,27 +54,7 @@ export function ChatArea() {
     return () => clearTimeout(timer);
   }, [activeId, activeMessages.length, scrollToBottom]);
 
-  // While generating, continuously keep viewport at bottom at 60fps if user hasn't scrolled up
-  useEffect(() => {
-    if (!isGenerating) return;
 
-    isAtBottomRef.current = true;
-    setShowScrollBottom(false);
-
-    let frameId: number;
-    const followStream = () => {
-      if (isAtBottomRef.current && containerRef.current) {
-        containerRef.current.scrollTop = containerRef.current.scrollHeight;
-      }
-      frameId = requestAnimationFrame(followStream);
-    };
-
-    frameId = requestAnimationFrame(followStream);
-
-    return () => {
-      cancelAnimationFrame(frameId);
-    };
-  }, [isGenerating]);
 
   // Backup ResizeObserver whenever content grows
   useEffect(() => {
@@ -141,7 +121,8 @@ export function ChatArea() {
                       <MessageBubble 
                         key={msg.id} 
                         message={msg} 
-                        allMessages={conv.messages} 
+                        allMessages={conv.messages}
+                        activeMessages={activeMessages}
                         isGenerating={isGenerating}
                         isLatestAssistantMessage={msg.id === latestAssistantMessageId}
                       />
@@ -169,7 +150,7 @@ export function ChatArea() {
               onClick={() => {
                 isAtBottomRef.current = true;
                 setShowScrollBottom(false);
-                scrollToBottom(true);
+                scrollToBottom(false);
               }}
               className="absolute bottom-4 right-4 sm:right-6 p-2.5 rounded-full shadow-lg border transition-all duration-200 hover:scale-105 active:scale-95 z-20 flex items-center justify-center animate-fade-in cursor-pointer"
               style={{

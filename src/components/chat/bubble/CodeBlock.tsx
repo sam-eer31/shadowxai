@@ -93,10 +93,10 @@ export function CodeBlock({ language, children, ...rest }: CodeBlockProps & Reco
   }
 
   return (
-    <div className="relative group rounded-xl overflow-hidden my-3 border max-w-full shadow-xs" style={{ background: 'var(--bg-codeblock)', borderColor: 'var(--border)' }}>
+    <div className="code-block-container relative group rounded-xl overflow-hidden my-3 border max-w-full shadow-xs" style={{ background: 'var(--bg-codeblock)', borderColor: 'var(--border)' }}>
       {/* Language label + Copy button */}
       <div
-        className="flex items-center justify-between px-3.5 py-1.5 text-xs select-none"
+        className="code-block-header flex items-center justify-between px-3.5 py-1.5 text-xs select-none"
         style={{
           background: 'transparent',
           color: 'var(--text-tertiary)',

@@ -4,6 +4,9 @@ import { calculatorTool } from './definitions/calculator';
 import { weatherTool } from './definitions/weather';
 import { currentTimeTool } from './definitions/current-time';
 import { imageGenerationTool } from './definitions/image-generation';
+import { getToolDefinitions } from './definitions/get-tool-definitions';
+import { createArtifactTool } from './definitions/create-artifact';
+import { readArtifactTool } from './definitions/read-artifact';
 
 // All available tools
 const ALL_TOOLS: ToolDefinition[] = [
@@ -12,6 +15,9 @@ const ALL_TOOLS: ToolDefinition[] = [
   weatherTool,
   currentTimeTool,
   imageGenerationTool,
+  createArtifactTool,
+  readArtifactTool,
+  getToolDefinitions,
 ];
 
 /**

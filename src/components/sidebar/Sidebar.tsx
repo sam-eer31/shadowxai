@@ -6,11 +6,11 @@ import { useState, useMemo, useEffect } from 'react';
 import {
   Search,
   Settings,
-  Wrench,
   PanelLeftClose,
   PanelLeftOpen,
   SquarePen,
   X,
+  ImageIcon,
 } from 'lucide-react';
 import { useChatStore } from '@/stores/chat-store';
 import { useUIStore } from '@/stores/ui-store';
@@ -29,7 +29,6 @@ export function Sidebar() {
   const toggleSidebar = useUIStore((s) => s.toggleSidebar);
   const setSidebarOpen = useUIStore((s) => s.setSidebarOpen);
   const openSettings = useUIStore((s) => s.openSettings);
-  const openTools = useUIStore((s) => s.openToolsMarketplace);
 
   useEffect(() => {
     const checkMobile = () => {
@@ -105,7 +104,7 @@ export function Sidebar() {
               {sidebarOpen ? <PanelLeftClose size={19} /> : <PanelLeftOpen size={19} />}
             </button>
             <div className={`flex items-center ml-2.5 transition-opacity duration-200 ${sidebarOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
-              <Image src="/logo.svg" alt="Logo" width={22} height={22} className="shrink-0 drop-shadow-sm" />
+              <Image src="/logo.svg" alt="Logo" width={22} height={22} priority className="shrink-0 drop-shadow-sm" />
               <span
                 className="font-semibold text-base tracking-tight truncate ml-2"
                 style={{ color: 'var(--text-primary)' }}
@@ -139,6 +138,30 @@ export function Sidebar() {
               }`}
             >
               New Chat
+            </span>
+          </button>
+
+          {/* Image Library Button */}
+          <button
+            onClick={() => {
+              useUIStore.getState().openImageLibrary();
+              handleSidebarItemClick();
+            }}
+            className="w-full flex items-center rounded-xl transition-all duration-150 overflow-hidden h-10 hover:bg-black/5 dark:hover:bg-white/5 active:scale-[0.98] group"
+            style={{
+              color: 'var(--text-secondary)',
+            }}
+            title="Image Library"
+          >
+            <div className="w-10 h-10 flex items-center justify-center shrink-0">
+              <ImageIcon size={19} />
+            </div>
+            <span
+              className={`whitespace-nowrap text-sm font-medium transition-opacity duration-200 ml-1 ${
+                sidebarOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
+              }`}
+            >
+              Image Library
             </span>
           </button>
 
@@ -187,7 +210,7 @@ export function Sidebar() {
 
         {/* Conversation List */}
         <div
-          className={`flex-1 overflow-y-auto px-2.5 scrollbar-hide py-2 transition-opacity duration-200 ${
+          className={`flex-1 overflow-y-auto px-2.5 py-2 transition-opacity duration-200 ${
             sidebarOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
           }`}
         >
@@ -230,27 +253,6 @@ export function Sidebar() {
             borderColor: sidebarOpen ? 'var(--border)' : 'transparent',
           }}
         >
-          <button
-            onClick={() => {
-              openTools();
-              handleSidebarItemClick();
-            }}
-            className="w-full flex items-center rounded-xl transition-colors hover:bg-black/5 dark:hover:bg-white/5 overflow-hidden h-10"
-            style={{ color: 'var(--text-secondary)' }}
-            title="Tools & Marketplace"
-          >
-            <div className="w-10 h-10 flex items-center justify-center shrink-0">
-              <Wrench size={19} />
-            </div>
-            <span
-              className={`whitespace-nowrap text-sm font-medium transition-opacity duration-200 ml-1 ${
-                sidebarOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
-              }`}
-            >
-              Tools & Marketplace
-            </span>
-          </button>
-
           <button
             onClick={() => {
               openSettings();

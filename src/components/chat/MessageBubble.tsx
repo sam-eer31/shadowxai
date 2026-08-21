@@ -15,11 +15,12 @@ import { useState } from 'react';
 interface MessageBubbleProps {
   message: Message;
   allMessages?: Message[];
+  activeMessages?: Message[];
   isGenerating?: boolean;
   isLatestAssistantMessage?: boolean;
 }
 
-export function MessageBubble({ message, allMessages, isGenerating, isLatestAssistantMessage }: MessageBubbleProps) {
+export function MessageBubble({ message, allMessages, activeMessages, isGenerating, isLatestAssistantMessage }: MessageBubbleProps) {
   const regenerateMessage = useChatStore((s) => s.regenerateMessage);
   const editMessage = useChatStore((s) => s.editMessage);
   const switchToBranch = useChatStore((s) => s.switchToBranch);
@@ -55,34 +56,62 @@ export function MessageBubble({ message, allMessages, isGenerating, isLatestAssi
   };
 
   // Check if this message is part of a tool chain that continues
-  const msgIndex = allMessages?.findIndex(m => m.id === message.id) ?? -1;
+  const activeMsgIndex = activeMessages?.findIndex(m => m.id === message.id) ?? -1;
   let isContinued = false;
   let isContinuation = false;
 
-  if (allMessages && msgIndex !== -1 && !isUser && !isTool) {
-    // Check forward for next assistant message without intervening user message
-    for (let i = msgIndex + 1; i < allMessages.length; i++) {
-      if (allMessages[i].role === 'user') break;
-      if (allMessages[i].role === 'assistant') {
+  if (activeMessages && activeMsgIndex !== -1 && !isUser && !isTool) {
+    let hasSubsequentUserMessage = false;
+
+    // Check forward on the active branch for next assistant message
+    for (let i = activeMsgIndex + 1; i < activeMessages.length; i++) {
+      if (activeMessages[i].role === 'user') {
+        hasSubsequentUserMessage = true;
+        break;
+      }
+      if (activeMessages[i].role === 'assistant') {
         isContinued = true;
         break;
       }
     }
     
-    // If a response is currently generating at the end of the conversation, treat the last assistant message as continued
-    if (!isContinued && isGenerating && isLatestAssistantMessage) {
+    // If generating at the end of the conversation
+    if (!isContinued && !hasSubsequentUserMessage && isGenerating && isLatestAssistantMessage) {
       isContinued = true;
     }
     
-    // Check backward for previous assistant message without intervening user message
-    for (let i = msgIndex - 1; i >= 0; i--) {
-      if (allMessages[i].role === 'user') break;
-      if (allMessages[i].role === 'assistant') {
+    // Check backward on the active branch for previous assistant message
+    for (let i = activeMsgIndex - 1; i >= 0; i--) {
+      if (activeMessages[i].role === 'user') break;
+      if (activeMessages[i].role === 'assistant') {
         isContinuation = true;
         break;
       }
     }
   }
+
+  // Find the root of this AI turn (the first assistant message after the user message)
+  let turnRoot = message;
+  if (!isUser && activeMessages && activeMsgIndex !== -1) {
+    for (let i = activeMsgIndex; i >= 0; i--) {
+      if (activeMessages[i].role === 'user') {
+        if (i + 1 <= activeMsgIndex) {
+          turnRoot = activeMessages[i + 1];
+        }
+        break;
+      }
+      if (i === 0) {
+        turnRoot = activeMessages[0];
+      }
+    }
+  }
+
+  // Calculate siblings for the turn root (so we navigate the whole turn together)
+  const turnRootParentId = turnRoot.parentId || 'root';
+  const turnSiblings = allMessages?.filter(m => (m.parentId || 'root') === turnRootParentId) || [];
+  turnSiblings.sort((a, b) => a.createdAt - b.createdAt);
+  const turnSiblingIndex = turnSiblings.findIndex(m => m.id === turnRoot.id);
+  const totalTurnSiblings = turnSiblings.length;
 
   // Tool result message
   if (isTool) {
@@ -264,21 +293,21 @@ export function MessageBubble({ message, allMessages, isGenerating, isLatestAssi
           )}
 
           {/* Actions for assistant messages */}
-          {!isUser && textContent && !isContinued && (
+          {!isUser && !isContinued && (
             <div className="flex items-center gap-1 mt-2 animate-fade-in" style={{ animationDuration: '0.3s' }}>
-              {totalSiblings > 1 && (
+              {totalTurnSiblings > 1 && (
                 <div className="flex items-center gap-1 text-xs font-medium transition-opacity mr-2" style={{ color: 'var(--text-secondary)' }}>
                   <button
-                    onClick={() => switchToBranch(siblings[siblingIndex - 1].id)}
-                    disabled={siblingIndex === 0}
+                    onClick={() => switchToBranch(turnSiblings[turnSiblingIndex - 1].id)}
+                    disabled={turnSiblingIndex === 0}
                     className="p-1 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 disabled:opacity-30 transition-colors"
                   >
                     <ChevronLeft size={14} />
                   </button>
-                  <span className="mx-0.5">{siblingIndex + 1} / {totalSiblings}</span>
+                  <span className="mx-0.5">{turnSiblingIndex + 1} / {totalTurnSiblings}</span>
                   <button
-                    onClick={() => switchToBranch(siblings[siblingIndex + 1].id)}
-                    disabled={siblingIndex === totalSiblings - 1}
+                    onClick={() => switchToBranch(turnSiblings[turnSiblingIndex + 1].id)}
+                    disabled={turnSiblingIndex === totalTurnSiblings - 1}
                     className="p-1 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 disabled:opacity-30 transition-colors"
                   >
                     <ChevronRight size={14} />
@@ -288,7 +317,8 @@ export function MessageBubble({ message, allMessages, isGenerating, isLatestAssi
               
               <button
                 onClick={handleCopy}
-                className="flex items-center justify-center p-1.5 rounded-lg transition-colors hover:bg-black/5 dark:hover:bg-white/5 active:scale-95"
+                disabled={!textContent}
+                className={`flex items-center justify-center p-1.5 rounded-lg transition-colors hover:bg-black/5 dark:hover:bg-white/5 active:scale-95 ${!textContent ? 'opacity-30 cursor-not-allowed hover:bg-transparent dark:hover:bg-transparent' : ''}`}
                 style={{ color: copied ? 'var(--success)' : 'var(--text-tertiary)' }}
                 aria-label="Copy response"
                 title="Copy response"

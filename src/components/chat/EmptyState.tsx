@@ -46,7 +46,7 @@ export function EmptyState() {
         {/* Logo */}
         <div className="text-center mb-6 sm:mb-8">
           <div className="mx-auto mb-4 sm:mb-5 flex items-center justify-center">
-            <Image src="/logo.svg" alt="Logo" width={64} height={64} className="w-14 h-14 sm:w-16 sm:h-16 drop-shadow-lg" />
+            <Image src="/logo.svg" alt="Logo" width={64} height={64} priority className="w-14 h-14 sm:w-16 sm:h-16 drop-shadow-lg" />
           </div>
           <h2 className="text-xl sm:text-2xl font-bold mb-1.5 sm:mb-2 tracking-tight" style={{ color: 'var(--text-primary)' }}>
             Welcome to Shadow
@@ -131,7 +131,7 @@ export function EmptyState() {
 
         {/* Privacy note */}
         <p className="text-center text-[11px] sm:text-xs mt-6 sm:mt-8 opacity-60" style={{ color: 'var(--text-tertiary)' }}>
-          Private & local · Direct connection to your AI provider
+          Private · Direct connection to your AI provider
         </p>
       </div>
     </div>

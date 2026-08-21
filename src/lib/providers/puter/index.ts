@@ -8,7 +8,7 @@ import type {
   ProviderMessage,
 } from '@/lib/types';
 import { useSettingsStore } from '@/stores/settings-store';
-// Known Puter / GPT-5.6 model capabilities
+// Known Puter model capabilities
 const PUTER_MODEL_CAPS: Record<
   string,
   { vision: boolean; tools: boolean; thinking: 'none' | 'levels' | 'on_off'; thinkingOptions?: { id: string; label: string }[] }
@@ -22,6 +22,11 @@ const PUTER_MODEL_CAPS: Record<
   'deepseek-v4-flash:free': { 
     vision: false, 
     tools: true, 
+    thinking: 'none'
+  },
+  'z-ai/glm-4.7-flash': {
+    vision: false,
+    tools: true,
     thinking: 'none'
   },
 };
@@ -58,6 +63,7 @@ export class PuterProvider implements AIProvider {
       { id: 'gpt-5.6-luna', name: 'GPT-5.6 Luna' },
       { id: 'deepseek-v4-flash', name: 'DeepSeek V4 Flash' },
       { id: 'deepseek-v4-flash:free', name: 'DeepSeek V4 Flash:free' },
+      { id: 'z-ai/glm-4.7-flash', name: 'GLM-4.7 Flash' },
     ];
 
     return models.map((m) => ({

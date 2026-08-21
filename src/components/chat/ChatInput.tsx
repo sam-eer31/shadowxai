@@ -29,11 +29,12 @@ export function ChatInput() {
   const isGenerating = useChatStore((s) => activeId ? s.generations[activeId]?.isGenerating : false);
   const activeProvider = useSettingsStore((s) => s.activeProvider);
   const selectedModels = useSettingsStore((s) => s.selectedModels);
-  const enabledTools = useSettingsStore((s) => s.enabledTools);
+  const isWebSearchEnabled = useSettingsStore((s) => s.isWebSearchEnabled);
+  const toggleWebSearch = useSettingsStore((s) => s.toggleWebSearch);
+  const hasWebSearchKey = useSettingsStore((s) => !!s.credentials.tavily?.apiKey);
   const fallbackThinkingMode = useSettingsStore((s) => s.thinkingMode);
   const modelThinkingModes = useSettingsStore((s) => s.modelThinkingModes);
   const setThinkingMode = useSettingsStore((s) => s.setThinkingMode);
-  const openTools = useUIStore((s) => s.openToolsMarketplace);
 
   // Check if current model supports vision & thinking
   const [currentModel, setCurrentModel] = useState<AIModel | null>(null);
@@ -105,6 +106,8 @@ export function ChatInput() {
     setAttachments([]);
     if (textareaRef.current) {
       textareaRef.current.style.height = 'auto';
+      // Refocus the input immediately after sending
+      textareaRef.current.focus();
     }
   }, [text, attachments, isGenerating, sendMessage]);
 
@@ -221,12 +224,11 @@ export function ChatInput() {
 
         {/* Input Card */}
         <div
-          className="rounded-2xl border transition-all duration-200 focus-within:ring-2 focus-within:ring-offset-0 shadow-xs flex flex-col"
+          className="rounded-2xl border transition-all duration-200 shadow-xs flex flex-col"
           style={{
             borderColor: 'var(--border)',
             background: 'var(--bg-secondary)',
-            '--tw-ring-color': 'var(--accent)',
-          } as React.CSSProperties}
+          }}
         >
           {/* Textarea */}
           <textarea
@@ -240,7 +242,6 @@ export function ChatInput() {
             style={{
               color: 'var(--text-primary)',
             }}
-            disabled={isGenerating}
           />
 
           {/* Action Toolbar Row */}
@@ -254,8 +255,9 @@ export function ChatInput() {
             currentModel={currentModel}
             thinkingMode={thinkingMode}
             handleThinkingClick={handleThinkingClick}
-            enabledTools={enabledTools}
-            openTools={openTools}
+            hasWebSearchKey={hasWebSearchKey}
+            isWebSearchEnabled={isWebSearchEnabled}
+            toggleWebSearch={toggleWebSearch}
             isGenerating={isGenerating}
             stopGeneration={stopGeneration}
             handleSend={handleSend}

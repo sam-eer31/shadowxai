@@ -94,7 +94,11 @@ export function SidebarItem({
         </div>
       ) : (
         <div className="flex-1 flex items-center min-w-0 pr-6 gap-2">
-          <span className="text-sm truncate">{conv.title}</span>
+          {conv.isGeneratingTitle ? (
+            <div className="h-4 w-3/4 bg-black/10 dark:bg-white/10 rounded animate-pulse" />
+          ) : (
+            <span className="text-sm truncate">{conv.title}</span>
+          )}
           {isGenerating && (
             <Loader2 size={12} className="animate-spin shrink-0 text-emerald-500" />
           )}

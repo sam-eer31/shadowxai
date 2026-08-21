@@ -4,11 +4,11 @@ import { useEffect, useState } from 'react';
 import { Sidebar } from '@/components/sidebar/Sidebar';
 import { ChatArea } from '@/components/chat/ChatArea';
 import { SettingsModal } from '@/components/settings/SettingsModal';
-import { ToolsMarketplace } from '@/components/tools/ToolsMarketplace';
 import { ToastContainer } from '@/components/ui/Toast';
 import { useSettingsStore } from '@/stores/settings-store';
 import { useChatStore } from '@/stores/chat-store';
 import { useUIStore } from '@/stores/ui-store';
+import { ImageLibrary } from '@/components/images/ImageLibrary';
 
 export default function Home() {
   const initSettings = useSettingsStore((s) => s.initialize);
@@ -18,7 +18,7 @@ export default function Home() {
   const chatInitialized = useChatStore((s) => s.initialized);
   
   const settingsOpen = useUIStore((s) => s.settingsOpen);
-  const toolsOpen = useUIStore((s) => s.toolsMarketplaceOpen);
+  const imageLibraryOpen = useUIStore((s) => s.imageLibraryOpen);
   const sidebarOpen = useUIStore((s) => s.sidebarOpen);
 
   const initUI = useUIStore((s) => s.initializeUI);
@@ -55,8 +55,8 @@ export default function Home() {
       {/* Settings Modal */}
       {settingsOpen && <SettingsModal />}
 
-      {/* Tools Marketplace */}
-      {toolsOpen && <ToolsMarketplace />}
+      {/* Image Library */}
+      {imageLibraryOpen && <ImageLibrary />}
 
       {/* Toast notifications */}
       <ToastContainer />

@@ -6,7 +6,6 @@ import { useSettingsStore } from '@/stores/settings-store';
 import { PuterConfig } from '../providers/PuterConfig';
 import { OllamaConfig } from '../providers/OllamaConfig';
 import { CloudflareConfig } from '../providers/CloudflareConfig';
-import { TavilyConfig } from '../providers/TavilyConfig';
 
 export function ProvidersTab() {
   return (
@@ -16,8 +15,6 @@ export function ProvidersTab() {
       <OllamaConfig />
       <hr style={{ borderColor: 'var(--border)' }} />
       <CloudflareConfig />
-      <hr style={{ borderColor: 'var(--border)' }} />
-      <TavilyConfig />
       <hr style={{ borderColor: 'var(--border)' }} />
       <div>
         <button

@@ -4,7 +4,7 @@ interface UIState {
   sidebarOpen: boolean;
   settingsOpen: boolean;
   settingsTab: string;
-  toolsMarketplaceOpen: boolean;
+  imageLibraryOpen: boolean;
   toasts: Toast[];
   // Actions
   toggleSidebar: () => void;
@@ -12,8 +12,8 @@ interface UIState {
   openSettings: (tab?: string) => void;
   closeSettings: () => void;
   setSettingsTab: (tab: string) => void;
-  openToolsMarketplace: () => void;
-  closeToolsMarketplace: () => void;
+  openImageLibrary: () => void;
+  closeImageLibrary: () => void;
   addToast: (toast: Omit<Toast, 'id'>) => void;
   removeToast: (id: string) => void;
   initializeUI: () => void;
@@ -30,7 +30,7 @@ export const useUIStore = create<UIState>((set) => ({
   sidebarOpen: true,
   settingsOpen: false,
   settingsTab: 'providers',
-  toolsMarketplaceOpen: false,
+  imageLibraryOpen: false,
   toasts: [],
 
   toggleSidebar: () => set((s) => {
@@ -48,8 +48,8 @@ export const useUIStore = create<UIState>((set) => ({
   closeSettings: () => set({ settingsOpen: false }),
   setSettingsTab: (tab) => set({ settingsTab: tab }),
 
-  openToolsMarketplace: () => set({ toolsMarketplaceOpen: true }),
-  closeToolsMarketplace: () => set({ toolsMarketplaceOpen: false }),
+  openImageLibrary: () => set({ imageLibraryOpen: true }),
+  closeImageLibrary: () => set({ imageLibraryOpen: false }),
 
   addToast: (toast) => {
     const id = `toast_${Date.now()}_${Math.random().toString(36).slice(2)}`;

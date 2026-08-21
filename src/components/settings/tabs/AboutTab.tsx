@@ -22,7 +22,7 @@ export function AboutTab() {
           Privacy & Security Guarantee
         </h4>
         <ul className="text-xs space-y-1.5 leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
-          <li>• Credentials remain exclusively in local client storage.</li>
+          <li>• Credentials remain exclusively in browser storage.</li>
           <li>• All chats are persisted directly in your browser using IndexedDB.</li>
           <li>• Requests dispatch straight to your configured provider endpoints.</li>
           <li>• Zero third-party analytics, logs, or external data tracking.</li>
@@ -37,7 +37,7 @@ export function AboutTab() {
         </h4>
         <ul className="text-xs space-y-1.5 leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
           <li>
-            <strong>Puter Cloud</strong> — GPT-5.6 Luna with native vision and tool calling.
+            <strong>Puter Cloud</strong> — Access AI models with native vision and tool calling.
           </li>
           <li>
             <strong>Ollama Cloud</strong> — Chat, thinking, web search, vision & tool calling.

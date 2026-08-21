@@ -5,8 +5,9 @@ import { getChatProvider } from '@/lib/providers';
 import { getAllTools, toProviderTools } from '@/lib/tools/registry';
 import { executeToolCalls } from './tool-executor';
 import { generateId } from '@/lib/utils/id';
-import { saveConversation } from '@/lib/storage/db';
+import { saveConversation, saveArtifact } from '@/lib/storage/db';
 import { extractBase64Data } from '@/lib/utils/image';
+import { useArtifactStore } from '@/stores/artifact-store';
 import type {
   Conversation,
   Message,
@@ -62,12 +63,6 @@ export async function generateResponse(
     // Build provider messages with context trimming
     const providerMessages = buildProviderMessages(conv.messages, settings);
 
-    // Get enabled tools
-    const enabledTools = getAllTools().filter((t) =>
-      settings.enabledTools.includes(t.name)
-    );
-    const providerTools = enabledTools.length > 0 ? toProviderTools(enabledTools) : undefined;
-
     let toolTurns = 0;
     let currentMessages = providerMessages;
     let fullText = '';
@@ -79,6 +74,24 @@ export async function generateResponse(
 
     // Loop to handle tool calls
     while (toolTurns <= MAX_TOOL_TURNS) {
+      // Find tools queried in the current generation (don't inject past history tools)
+      const usedToolNames = new Set<string>();
+      for (const tc of allToolCalls) {
+        if (tc.name === 'get_tool_definitions' && Array.isArray(tc.arguments?.tool_names)) {
+          for (const name of tc.arguments.tool_names as string[]) {
+            usedToolNames.add(name);
+          }
+        }
+      }
+
+      // Only inject discovery tools + previously used tools
+      const dynamicToolsToInject = getAllTools().filter(t => 
+        t.name === 'get_tool_definitions' ||
+        usedToolNames.has(t.name)
+      );
+
+      const providerTools = dynamicToolsToInject.length > 0 ? toProviderTools(dynamicToolsToInject) : undefined;
+
       fullText = '';
       fullThought = '';
       thoughtStart = 0;
@@ -120,6 +133,16 @@ export async function generateResponse(
           });
         }
       }
+
+      // Log the full payload going to the provider to the server console
+      fetch('/api/log', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          messages: requestMessages,
+          tools: providerTools
+        })
+      }).catch(() => {});
 
       const stream = provider.chat({
         model: modelId,
@@ -204,6 +227,17 @@ export async function generateResponse(
       isUnrolling = false;
       await unrollerPromise;
 
+      // Log the exact raw response to the terminal for debugging
+      fetch('/api/log', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          rawModelTextResponse: fullText,
+          rawModelThoughtResponse: fullThought,
+          toolCalls: pendingToolCalls
+        })
+      }).catch(() => {});
+
       // If we got tool calls, execute them and continue
       if (pendingToolCalls.length > 0 && toolTurns < MAX_TOOL_TURNS) {
         toolTurns++;
@@ -230,8 +264,11 @@ export async function generateResponse(
           parentId: conv.currentNodeId,
         };
 
+        // Merge only metadata from store (title may have been updated by background title gen)
+        const storeConv2 = store.getState().conversations.find((c) => c.id === conv.id);
         conv = {
           ...conv,
+          ...(storeConv2 ? { title: storeConv2.title, isGeneratingTitle: storeConv2.isGeneratingTitle } : {}),
           messages: [...conv.messages, assistantMsg],
           currentNodeId: assistantMsg.id,
           updatedAt: Date.now(),
@@ -311,7 +348,7 @@ export async function generateResponse(
         }
 
         // Rebuild messages for next turn
-        currentMessages = buildProviderMessages(conv.messages, settings);
+        currentMessages = buildProviderMessages(conv.messages, settings, true);
 
         // Update conversations state
         const conversations = useChatStore
@@ -322,7 +359,7 @@ export async function generateResponse(
 
         // Professional Solution: Terminate the turn immediately if the tool definition requires it
         const shouldTerminate = pendingToolCalls.some((tc) => {
-          const toolDef = enabledTools.find((t) => t.name === tc.name);
+          const toolDef = getAllTools().find((t) => t.name === tc.name);
           return toolDef?.terminatesTurn === true;
         });
 
@@ -339,6 +376,34 @@ export async function generateResponse(
 
     // Add final assistant message
     if (fullText || fullThought || allToolCalls.length === 0) {
+      // Extract artifacts to DB
+      const artifactRegex = /<artifact id="([^"]+)">([\s\S]*?)<\/artifact>/g;
+      let match;
+      while ((match = artifactRegex.exec(fullText)) !== null) {
+        const id = match[1];
+        let rawContent = match[2].trim();
+        // Strip the ```language \n and ``` if present
+        const codeBlockRegex = /^```[a-zA-Z0-9-]*\n([\s\S]*?)\n```$/;
+        const codeMatch = rawContent.match(codeBlockRegex);
+        if (codeMatch) {
+          rawContent = codeMatch[1].trim();
+        }
+
+        const meta = useArtifactStore.getState().getArtifact(id);
+        if (meta) {
+          await saveArtifact({
+            id,
+            conversationId: conv.id,
+            filename: meta.filename,
+            extension: meta.extension,
+            language: meta.language || meta.extension,
+            content: rawContent,
+            createdAt: Date.now(),
+            updatedAt: Date.now()
+          });
+        }
+      }
+
       const contentBlocks: MessageContent[] = [];
       if (fullThought) {
         contentBlocks.push({ type: 'thought', thought: fullThought, thoughtTimeMs: currentThoughtTimeMs });
@@ -350,6 +415,8 @@ export async function generateResponse(
         contentBlocks.push({ type: 'text', text: '' });
       }
 
+      // Merge only metadata from store (title may have been updated by background title gen)
+      const storeConv1 = useChatStore.getState().conversations.find((c) => c.id === conv.id);
       const assistantMessage: Message = {
         id: generateId(),
         role: 'assistant',
@@ -362,13 +429,19 @@ export async function generateResponse(
 
       conv = {
         ...conv,
+        ...(storeConv1 ? { title: storeConv1.title, isGeneratingTitle: storeConv1.isGeneratingTitle } : {}),
         messages: [...conv.messages, assistantMessage],
         currentNodeId: assistantMessage.id,
         updatedAt: Date.now(),
       };
     }
 
-    // Update state
+    // Final metadata merge before saving
+    const finalStoreConv = useChatStore.getState().conversations.find((c) => c.id === conv.id);
+    if (finalStoreConv) {
+      conv = { ...conv, title: finalStoreConv.title, isGeneratingTitle: finalStoreConv.isGeneratingTitle };
+    }
+
     const conversations = useChatStore
       .getState()
       .conversations.map((c) => (c.id === conv.id ? conv : c));
@@ -407,14 +480,41 @@ export async function generateResponse(
  */
 function buildProviderMessages(
   messages: Message[],
-  settings: ReturnType<typeof useSettingsStore.getState>
+  settings: ReturnType<typeof useSettingsStore.getState>,
+  preserveDiscoveryTools: boolean = false
 ): ProviderMessage[] {
   const result: ProviderMessage[] = [];
 
+  // Get available tool names to inject into system prompt
+  const baseTools = ['calculator', 'weather', 'current_time', 'create_artifact', 'read_artifact'];
+  
+  const hasImageCreds = (settings.credentials as any).puter?.signedIn || 
+                        ((settings.credentials as any).cloudflare?.accountId && (settings.credentials as any).cloudflare?.apiToken && (settings.credentials as any).cloudflare?.enabled !== false);
+  const hasWebCreds = !!(settings.credentials as any).tavily?.apiKey;
+
+  const availableToolNames = [...baseTools];
+  if (hasImageCreds) availableToolNames.push('image_generation');
+  if (hasWebCreds && settings.isWebSearchEnabled) availableToolNames.push('web_search');
+
+  let systemPrompt = settings.systemPrompt;
+  if (availableToolNames.length > 0) {
+    systemPrompt += `\n\nYou have access to the following tools: ${availableToolNames.join(', ')}. If you need to use any of these tools to fulfill the user's request, you MUST first call the 'get_tool_definitions' tool with their names to get their required parameters.`;
+  }
+
+  systemPrompt += `\n\nCRITICAL RULE: Whenever you write or generate any code, scripts, HTML, CSS, or structured data files (like JSON/YAML), you MUST use the 'create_artifact' tool to save it into an isolated file block. NEVER write raw markdown code blocks in your conversational text. Always place code inside an artifact.`;
+
+  if (!hasImageCreds) {
+    systemPrompt += `\n\nCRITICAL RULE: If the user asks to generate an image, tell them they need to configure Image Generation in Settings. Include this exact button in your text response: <settings-btn tab="providers" />`;
+  }
+  if (!hasWebCreds || !settings.isWebSearchEnabled) {
+    const reason = !hasWebCreds ? 'configure Web Search in Settings' : 'toggle on Web Search in the chat input area';
+    systemPrompt += `\n\nCRITICAL RULE: If the user asks to search the web, tell them they need to ${reason}. ` +
+      (!hasWebCreds ? `Include this exact button in your text response: <settings-btn tab="services" />` : ``);
+  }
   // Always add system prompt
   result.push({
     role: 'system',
-    parts: [{ type: 'text', text: settings.systemPrompt }],
+    parts: [{ type: 'text', text: systemPrompt }],
   });
 
   // Context trimming: keep last N messages
@@ -433,7 +533,12 @@ function buildProviderMessages(
       switch (content.type) {
         case 'text':
           if (content.text) {
-            parts.push({ type: 'text', text: content.text });
+            let trimmedText = content.text;
+            const artifactRegex = /<artifact id="([^"]+)">([\s\S]*?)<\/artifact>/g;
+            trimmedText = trimmedText.replace(artifactRegex, (match, id) => {
+              return `\n[Artifact saved (ID: ${id}). Use read_artifact to view contents]\n`;
+            });
+            parts.push({ type: 'text', text: trimmedText });
           }
           break;
         case 'image':
@@ -444,11 +549,19 @@ function buildProviderMessages(
           break;
         case 'tool_call':
           if (content.toolCall) {
+            // HISTORY CLEANUP: Skip all tool calls from past turns to prevent context bloat
+            if (!preserveDiscoveryTools) {
+              continue;
+            }
             toolCalls.push(content.toolCall);
           }
           break;
         case 'tool_result':
           if (content.toolResult) {
+            // HISTORY CLEANUP: Skip all tool results from past turns to prevent context bloat
+            if (!preserveDiscoveryTools) {
+              continue;
+            }
             let resultData = content.toolResult.result;
             // Strip out huge base64 image data from tool results
             if (typeof resultData === 'string' && resultData.includes('"type":"generated_image"')) {

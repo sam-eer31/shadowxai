@@ -57,7 +57,7 @@ export function DataTab() {
           Conversations Backup
         </h3>
         <p className="text-xs mb-3" style={{ color: 'var(--text-tertiary)' }}>
-          Export or restore all your conversations locally in JSON format.
+          Export or restore all your conversations in JSON format.
         </p>
         <div className="flex flex-col sm:flex-row gap-2">
           <button

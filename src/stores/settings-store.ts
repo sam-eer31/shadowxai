@@ -7,11 +7,12 @@ import type {
   AppSettings,
 } from '@/lib/types';
 import { setSetting, getSetting } from '@/lib/storage/db';
+import { useUIStore } from './ui-store';
 
 const DEFAULT_SYSTEM_PROMPT =
   'You are a helpful AI assistant. Answer accurately, clearly, and concisely. Use available tools when useful. Follow the user\'s instructions and never claim to have performed an action you did not perform.';
 
-function getAvailableTools(creds: ProviderCredentials): Set<string> {
+export function getAvailableTools(creds: ProviderCredentials): Set<string> {
   const available = new Set<string>();
   
   if ((creds as any).tavily?.apiKey) {
@@ -27,24 +28,44 @@ function getAvailableTools(creds: ProviderCredentials): Set<string> {
   available.add('calculator');
   available.add('weather');
   available.add('current_time');
+  available.add('create_artifact');
+  available.add('read_artifact');
+  available.add('get_tool_definitions');
 
   return available;
 }
 
-function syncEnabledTools(enabled: string[], oldCreds: ProviderCredentials, newCreds: ProviderCredentials): string[] {
+function syncWebSearchEnabled(wasEnabled: boolean, oldCreds: ProviderCredentials, newCreds: ProviderCredentials): boolean {
   const oldAvailable = getAvailableTools(oldCreds);
   const newAvailable = getAvailableTools(newCreds);
-  const enabledTools = new Set(enabled);
-
-  for (const tool of ['web_search', 'image_generation', 'calculator', 'weather', 'current_time']) {
-    if (newAvailable.has(tool) && !oldAvailable.has(tool)) {
-      enabledTools.add(tool);
-    } else if (!newAvailable.has(tool)) {
-      enabledTools.delete(tool);
-    }
+  
+  if (newAvailable.has('web_search') && !oldAvailable.has('web_search')) {
+    return true; // Auto-enable when key added
+  } else if (!newAvailable.has('web_search')) {
+    return false; // Auto-disable when key removed
   }
+  return wasEnabled;
+}
 
-  return Array.from(enabledTools);
+function getConfiguredProviders(creds: ProviderCredentials): ProviderType[] {
+  const providers: ProviderType[] = [];
+  if (creds.puter?.signedIn) providers.push('puter');
+  if (creds.ollama?.apiKey) providers.push('ollama');
+  if (creds.cloudflare?.accountId && creds.cloudflare?.apiToken) providers.push('cloudflare');
+  return providers;
+}
+
+function getEnabledProviders(creds: ProviderCredentials): ProviderType[] {
+  const configured = getConfiguredProviders(creds);
+  const enabled: ProviderType[] = [];
+  if (configured.includes('puter')) enabled.push('puter');
+  if (configured.includes('ollama') && creds.ollama?.enabled !== false) enabled.push('ollama');
+  if (configured.includes('cloudflare') && creds.cloudflare?.enabled !== false) enabled.push('cloudflare');
+  
+  if (enabled.length === 0 && configured.length > 0) {
+    return [configured[0]];
+  }
+  return enabled;
 }
 
 interface SettingsState {
@@ -55,7 +76,7 @@ interface SettingsState {
   activeProvider: ProviderType;
   webSearchProvider: ProviderType;
   selectedModels: Partial<Record<ProviderType, string>>;
-  enabledTools: string[];
+  isWebSearchEnabled: boolean;
   systemPrompt: string;
   contextWindowSize: number;
   selectedImageModel?: string;
@@ -76,12 +97,13 @@ interface SettingsState {
   setActiveProvider: (provider: ProviderType) => void;
   setWebSearchProvider: (provider: ProviderType) => void;
   setSelectedModel: (provider: ProviderType, model: string) => void;
-  toggleTool: (toolName: string) => void;
+  toggleWebSearch: () => void;
   setSystemPrompt: (prompt: string) => void;
   setContextWindowSize: (size: number) => void;
   setSelectedImageModel: (model: string) => void;
   setThinkingMode: (mode: ThinkingMode, modelId?: string) => void;
   setUserLocation: (location: string) => void;
+  getEnabledProvidersList: () => ProviderType[];
 }
 
 export const useSettingsStore = create<SettingsState>((set, get) => ({
@@ -90,7 +112,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   activeProvider: 'puter',
   webSearchProvider: 'ollama',
   selectedModels: {},
-  enabledTools: ['web_search', 'calculator', 'weather', 'current_time'],
+  isWebSearchEnabled: false,
   systemPrompt: DEFAULT_SYSTEM_PROMPT,
   contextWindowSize: 20,
   selectedImageModel: 'black-forest-labs/flux-2-klein-4b',
@@ -98,6 +120,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   modelThinkingModes: {},
   userLocation: '',
   initialized: false,
+  getEnabledProvidersList: () => getEnabledProviders(get().credentials),
 
   initialize: async () => {
     if (get().initialized) return;
@@ -110,16 +133,12 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
       // Load settings from IndexedDB
       const settings = await getSetting<AppSettings>('app-settings');
 
-      let initialEnabledTools = settings?.enabledTools || [
-        'web_search',
-        'calculator',
-        'weather',
-        'current_time',
-      ];
-      
-      // Cleanup invalid tools from initial state based on credentials
+      // Initialize web search toggle based on credentials
       const validAvailable = getAvailableTools(credentials);
-      initialEnabledTools = initialEnabledTools.filter(t => validAvailable.has(t));
+      let initialWebSearch = settings?.isWebSearchEnabled ?? false;
+      if (!validAvailable.has('web_search')) {
+        initialWebSearch = false;
+      }
 
       set({
         credentials,
@@ -127,7 +146,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
         activeProvider: settings?.activeProvider || 'puter',
         webSearchProvider: settings?.webSearchProvider || 'ollama',
         selectedModels: settings?.selectedModels || {},
-        enabledTools: initialEnabledTools,
+        isWebSearchEnabled: initialWebSearch,
         systemPrompt: settings?.systemPrompt || DEFAULT_SYSTEM_PROMPT,
         contextWindowSize: settings?.contextWindowSize || 20,
         selectedImageModel: settings?.selectedImageModel || 'black-forest-labs/flux-2-klein-4b',
@@ -164,11 +183,20 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   setCredential: (provider, value) => {
     const oldCreds = get().credentials;
     const creds = { ...oldCreds, [provider]: value };
+    
+    // Prevent disabling the only configured provider
+    const configured = getConfiguredProviders(creds);
+    if (configured.length === 1 && configured[0] === provider && (value as any).enabled === false) {
+      (value as any).enabled = true;
+      (creds as any)[provider] = value;
+      // Also notify user
+      if (typeof window !== 'undefined') {
+        useUIStore.getState().addToast({ type: 'warning', message: 'Cannot disable the only configured provider.' });
+      }
+    }
+
     const stateUpdate: Partial<SettingsState> = { credentials: creds };
 
-    // We no longer aggressively auto-switch activeProvider here.
-    // The user explicitly selects their provider/model from the ModelSelector UI.
-    
     // Auto-select default models if not selected
     const selectedModels = { ...get().selectedModels };
     let modelsChanged = false;
@@ -186,8 +214,16 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
       stateUpdate.selectedModels = selectedModels;
     }
 
+    // Auto-switch activeProvider if current one is not enabled
+    const enabled = getEnabledProviders(creds);
+    if (enabled.length > 0 && !enabled.includes(get().activeProvider)) {
+      stateUpdate.activeProvider = enabled[0];
+    } else if (enabled.length === 0) {
+      stateUpdate.activeProvider = 'puter'; // Fallback
+    }
+
     // Auto-enable or disable tools based on credentials
-    stateUpdate.enabledTools = syncEnabledTools(get().enabledTools, oldCreds, creds);
+    stateUpdate.isWebSearchEnabled = syncWebSearchEnabled(get().isWebSearchEnabled, oldCreds, creds);
 
     set(stateUpdate);
     localStorage.setItem('shadow-credentials', JSON.stringify(creds));
@@ -199,8 +235,28 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
     const oldCreds = get().credentials;
     const creds = { ...oldCreds };
     delete creds[provider];
-    const newEnabledTools = syncEnabledTools(get().enabledTools, oldCreds, creds);
-    set({ credentials: creds, enabledTools: newEnabledTools });
+    
+    const stateUpdate: Partial<SettingsState> = { credentials: creds };
+    
+    const enabled = getEnabledProviders(creds);
+    if (enabled.length > 0) {
+      if (!enabled.includes(get().activeProvider)) {
+        stateUpdate.activeProvider = enabled[0];
+      }
+      
+      // If a provider was forcefully enabled as a fallback, update its credentials
+      enabled.forEach(p => {
+        if (creds[p] && (creds[p] as any).enabled === false) {
+          (creds[p] as any).enabled = true;
+        }
+      });
+    } else {
+      stateUpdate.activeProvider = 'puter'; // fallback
+    }
+
+    stateUpdate.isWebSearchEnabled = syncWebSearchEnabled(get().isWebSearchEnabled, oldCreds, creds);
+    
+    set(stateUpdate);
     localStorage.setItem('shadow-credentials', JSON.stringify(creds));
     persistSettings(get());
   },
@@ -208,8 +264,8 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   clearAllCredentials: () => {
     const oldCreds = get().credentials;
     const creds = {};
-    const newEnabledTools = syncEnabledTools(get().enabledTools, oldCreds, creds);
-    set({ credentials: creds, enabledTools: newEnabledTools });
+    const newWebSearchEnabled = syncWebSearchEnabled(get().isWebSearchEnabled, oldCreds, creds);
+    set({ credentials: creds, isWebSearchEnabled: newWebSearchEnabled });
     localStorage.removeItem('shadow-credentials');
     persistSettings(get());
   },
@@ -236,17 +292,12 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
     persistSettings(get());
   },
 
-  toggleTool: (toolName) => {
+  toggleWebSearch: () => {
     const creds = get().credentials;
-    
     const available = getAvailableTools(creds);
-    if (!available.has(toolName)) return; // Prevent toggle if not available
+    if (!available.has('web_search')) return; // Prevent toggle if not available
 
-    const enabled = get().enabledTools;
-    const newEnabled = enabled.includes(toolName)
-      ? enabled.filter((t) => t !== toolName)
-      : [...enabled, toolName];
-    set({ enabledTools: newEnabled });
+    set({ isWebSearchEnabled: !get().isWebSearchEnabled });
     persistSettings(get());
   },
 
@@ -300,7 +351,7 @@ function persistSettings(state: SettingsState) {
     activeProvider: state.activeProvider,
     webSearchProvider: state.webSearchProvider,
     selectedModels: state.selectedModels,
-    enabledTools: state.enabledTools,
+    isWebSearchEnabled: state.isWebSearchEnabled,
     systemPrompt: state.systemPrompt,
     contextWindowSize: state.contextWindowSize,
     selectedImageModel: state.selectedImageModel,

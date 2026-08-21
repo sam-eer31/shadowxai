@@ -2,7 +2,7 @@ import { openDB, type IDBPDatabase } from 'idb';
 import type { Conversation, ExportData } from '@/lib/types';
 
 const DB_NAME = 'shadow-db';
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 
 interface ShadowDB {
   conversations: {
@@ -13,6 +13,11 @@ interface ShadowDB {
   settings: {
     key: string;
     value: unknown;
+  };
+  artifacts: {
+    key: string;
+    value: import('@/lib/types').Artifact;
+    indexes: { 'by-conversation': string };
   };
 }
 
@@ -32,6 +37,13 @@ function getDB(): Promise<IDBPDatabase<ShadowDB>> {
         // Settings store
         if (!db.objectStoreNames.contains('settings')) {
           db.createObjectStore('settings');
+        }
+        // Artifacts store
+        if (!db.objectStoreNames.contains('artifacts')) {
+          const artifactStore = db.createObjectStore('artifacts', {
+            keyPath: 'id',
+          });
+          artifactStore.createIndex('by-conversation', 'conversationId');
         }
       },
     });
@@ -84,6 +96,23 @@ export async function searchConversations(
         )
       )
   );
+}
+
+// --- Artifacts ---
+
+export async function getArtifact(id: string): Promise<import('@/lib/types').Artifact | undefined> {
+  const db = await getDB();
+  return db.get('artifacts', id);
+}
+
+export async function saveArtifact(artifact: import('@/lib/types').Artifact): Promise<void> {
+  const db = await getDB();
+  await db.put('artifacts', artifact);
+}
+
+export async function getArtifactsByConversation(conversationId: string): Promise<import('@/lib/types').Artifact[]> {
+  const db = await getDB();
+  return db.getAllFromIndex('artifacts', 'by-conversation', conversationId);
 }
 
 // --- Settings ---

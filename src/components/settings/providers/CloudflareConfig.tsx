@@ -33,7 +33,7 @@ export function CloudflareConfig() {
   };
 
   return (
-    <div>
+    <div id="setting-section-cloudflare">
       <div className="flex items-center justify-between mb-1">
         <h3 className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
           Cloudflare Workers AI
@@ -49,7 +49,7 @@ export function CloudflareConfig() {
         </a>
       </div>
       <p className="text-xs mb-3" style={{ color: 'var(--text-tertiary)' }}>
-        Optional — used for local image generation tool if Puter is unavailable or if you prefer Cloudflare.
+        Optional — used for image generation tool if Puter is unavailable or if you prefer Cloudflare.
       </p>
       <div className="space-y-3">
         <div>
