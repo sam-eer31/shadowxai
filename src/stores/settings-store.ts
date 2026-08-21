@@ -11,6 +11,42 @@ import { setSetting, getSetting } from '@/lib/storage/db';
 const DEFAULT_SYSTEM_PROMPT =
   'You are a helpful AI assistant. Answer accurately, clearly, and concisely. Use available tools when useful. Follow the user\'s instructions and never claim to have performed an action you did not perform.';
 
+function getAvailableTools(creds: ProviderCredentials): Set<string> {
+  const available = new Set<string>();
+  
+  if ((creds as any).tavily?.apiKey) {
+    available.add('web_search');
+  }
+
+  const hasPuter = (creds as any).puter?.signedIn;
+  const hasCloudflare = (creds as any).cloudflare?.accountId && (creds as any).cloudflare?.apiToken && (creds as any).cloudflare?.enabled !== false;
+  if (hasPuter || hasCloudflare) {
+    available.add('image_generation');
+  }
+
+  available.add('calculator');
+  available.add('weather');
+  available.add('current_time');
+
+  return available;
+}
+
+function syncEnabledTools(enabled: string[], oldCreds: ProviderCredentials, newCreds: ProviderCredentials): string[] {
+  const oldAvailable = getAvailableTools(oldCreds);
+  const newAvailable = getAvailableTools(newCreds);
+  const enabledTools = new Set(enabled);
+
+  for (const tool of ['web_search', 'image_generation', 'calculator', 'weather', 'current_time']) {
+    if (newAvailable.has(tool) && !oldAvailable.has(tool)) {
+      enabledTools.add(tool);
+    } else if (!newAvailable.has(tool)) {
+      enabledTools.delete(tool);
+    }
+  }
+
+  return Array.from(enabledTools);
+}
+
 interface SettingsState {
   // Credentials
   credentials: ProviderCredentials;
@@ -74,19 +110,24 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
       // Load settings from IndexedDB
       const settings = await getSetting<AppSettings>('app-settings');
 
+      let initialEnabledTools = settings?.enabledTools || [
+        'web_search',
+        'calculator',
+        'weather',
+        'current_time',
+      ];
+      
+      // Cleanup invalid tools from initial state based on credentials
+      const validAvailable = getAvailableTools(credentials);
+      initialEnabledTools = initialEnabledTools.filter(t => validAvailable.has(t));
+
       set({
         credentials,
         theme: settings?.theme || 'dark',
         activeProvider: settings?.activeProvider || 'puter',
         webSearchProvider: settings?.webSearchProvider || 'ollama',
         selectedModels: settings?.selectedModels || {},
-        enabledTools:
-          settings?.enabledTools || [
-            'web_search',
-            'calculator',
-            'weather',
-            'current_time',
-          ],
+        enabledTools: initialEnabledTools,
         systemPrompt: settings?.systemPrompt || DEFAULT_SYSTEM_PROMPT,
         contextWindowSize: settings?.contextWindowSize || 20,
         selectedImageModel: settings?.selectedImageModel || 'black-forest-labs/flux-2-klein-4b',
@@ -121,7 +162,8 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   },
 
   setCredential: (provider, value) => {
-    const creds = { ...get().credentials, [provider]: value };
+    const oldCreds = get().credentials;
+    const creds = { ...oldCreds, [provider]: value };
     const stateUpdate: Partial<SettingsState> = { credentials: creds };
 
     // We no longer aggressively auto-switch activeProvider here.
@@ -145,28 +187,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
     }
 
     // Auto-enable or disable tools based on credentials
-    const enabledTools = new Set(get().enabledTools);
-    
-    // Web Search logic
-    const hasTavily = (provider === 'tavily' ? value : creds.tavily) as any;
-    if (hasTavily?.apiKey) {
-      enabledTools.add('web_search');
-    } else {
-      enabledTools.delete('web_search');
-    }
-
-    // Image Generation logic
-    const hasPuter = (provider === 'puter' ? value : creds.puter) as any;
-    const hasCloudflare = (provider === 'cloudflare' ? value : creds.cloudflare) as any;
-    
-    const canGenImages = hasPuter?.signedIn || (hasCloudflare?.accountId && hasCloudflare?.apiToken && hasCloudflare?.enabled !== false);
-    if (canGenImages) {
-      enabledTools.add('image_generation');
-    } else {
-      enabledTools.delete('image_generation');
-    }
-
-    stateUpdate.enabledTools = Array.from(enabledTools);
+    stateUpdate.enabledTools = syncEnabledTools(get().enabledTools, oldCreds, creds);
 
     set(stateUpdate);
     localStorage.setItem('shadow-credentials', JSON.stringify(creds));
@@ -175,15 +196,22 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   },
 
   removeCredential: (provider) => {
-    const creds = { ...get().credentials };
+    const oldCreds = get().credentials;
+    const creds = { ...oldCreds };
     delete creds[provider];
-    set({ credentials: creds });
+    const newEnabledTools = syncEnabledTools(get().enabledTools, oldCreds, creds);
+    set({ credentials: creds, enabledTools: newEnabledTools });
     localStorage.setItem('shadow-credentials', JSON.stringify(creds));
+    persistSettings(get());
   },
 
   clearAllCredentials: () => {
-    set({ credentials: {} });
+    const oldCreds = get().credentials;
+    const creds = {};
+    const newEnabledTools = syncEnabledTools(get().enabledTools, oldCreds, creds);
+    set({ credentials: creds, enabledTools: newEnabledTools });
     localStorage.removeItem('shadow-credentials');
+    persistSettings(get());
   },
 
   setTheme: (theme) => {
@@ -211,14 +239,8 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   toggleTool: (toolName) => {
     const creds = get().credentials;
     
-    if (toolName === 'web_search') {
-      if (!creds.tavily?.apiKey) return; // Prevent toggle if no key
-    }
-    
-    if (toolName === 'image_generation') {
-      const canGenImages = creds.puter?.signedIn || (creds.cloudflare?.accountId && creds.cloudflare?.apiToken && creds.cloudflare?.enabled !== false);
-      if (!canGenImages) return; // Prevent toggle if no creds
-    }
+    const available = getAvailableTools(creds);
+    if (!available.has(toolName)) return; // Prevent toggle if not available
 
     const enabled = get().enabledTools;
     const newEnabled = enabled.includes(toolName)

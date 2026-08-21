@@ -87,11 +87,12 @@ export function ToolCard({ tool, enabled, onToggle }: ToolCardProps) {
 
       {/* Toggle */}
       <button
-        onClick={() => onToggle(tool.name)}
-        className="relative w-10 h-6 rounded-full transition-colors duration-200 shrink-0 cursor-pointer focus:outline-none"
+        onClick={() => available && onToggle(tool.name)}
+        className={`relative w-10 h-6 rounded-full transition-all duration-200 shrink-0 focus:outline-none ${available ? 'cursor-pointer' : 'cursor-not-allowed opacity-50 grayscale'}`}
         style={{
           background: enabled ? '#10b981' : 'var(--bg-tertiary)',
         }}
+        disabled={!available}
         aria-label={`Toggle ${tool.name}`}
       >
         <div

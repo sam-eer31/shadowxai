@@ -186,11 +186,16 @@ export function PuterConfig() {
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
                         <div style={{ color: 'var(--text-primary)', fontSize: '15px' }}>Resources</div>
                         <div style={{ color: 'var(--text-secondary)', fontSize: '14px' }}>
-                          {Math.round(percentage)}% &middot; {formatNum(used)} used of {formatNum(allowance)} Credits
+                          {formatNum(used)} used of {formatNum(allowance)} Credits
                         </div>
                       </div>
                       <div style={{ width: '100%', height: '14px', background: 'var(--bg-tertiary)', borderRadius: '10px', overflow: 'hidden' }}>
                         <div style={{ height: '100%', width: `${Math.min(100, percentage)}%`, background: 'var(--warning)', borderRadius: '10px', transition: 'width .5s' }} />
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '8px' }}>
+                        <div style={{ color: 'var(--text-secondary)', fontSize: '13px', fontWeight: '500' }}>
+                          {Math.round(percentage)}%
+                        </div>
                       </div>
                     </div>
 
