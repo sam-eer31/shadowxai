@@ -1,4 +1,4 @@
-import { useChatStore } from '@/stores/chat-store';
+import { useChatStore, getActiveMessages } from '@/stores/chat-store';
 import { useSettingsStore } from '@/stores/settings-store';
 import { useUIStore } from '@/stores/ui-store';
 import { getChatProvider } from '@/lib/providers';
@@ -8,6 +8,7 @@ import { generateId } from '@/lib/utils/id';
 import { saveConversation, saveArtifact } from '@/lib/storage/db';
 import { extractBase64Data } from '@/lib/utils/image';
 import { useArtifactStore } from '@/stores/artifact-store';
+import { processScratchpadAsync } from './scratchpad';
 import type {
   Conversation,
   Message,
@@ -60,8 +61,9 @@ export async function generateResponse(
   });
 
   try {
-    // Build provider messages with context trimming
-    const providerMessages = buildProviderMessages(conv.messages, settings);
+    // Build provider messages with context trimming, using only the active branch
+    const activeMessages = getActiveMessages(conv);
+    const providerMessages = buildProviderMessages(activeMessages, settings);
 
     let toolTurns = 0;
     let currentMessages = providerMessages;
@@ -457,6 +459,9 @@ export async function generateResponse(
     });
 
     await saveConversation(conv);
+
+    // Trigger background scratchpad processing without blocking
+    processScratchpadAsync(conv, settings, settings.credentials).catch(console.error);
   } catch (e) {
     if (!(e instanceof DOMException && e.name === 'AbortError')) {
       useUIStore.getState().addToast({
@@ -502,6 +507,7 @@ function buildProviderMessages(
   }
 
   systemPrompt += `\n\nCRITICAL RULE: Whenever you write or generate any code, scripts, HTML, CSS, or structured data files (like JSON/YAML), you MUST use the 'create_artifact' tool to save it into an isolated file block. NEVER write raw markdown code blocks in your conversational text. Always place code inside an artifact.`;
+  systemPrompt += `\n\nYou are supported by an automated background Scratchpad that tracks user preferences, active goals, past decisions, generated artifacts, and images for this conversation. If you need historical context beyond your immediate memory, you MUST call the 'read_scratchpad' tool to view it.`;
 
   if (!hasImageCreds) {
     systemPrompt += `\n\nCRITICAL RULE: If the user asks to generate an image, tell them they need to configure Image Generation in Settings. Include this exact button in your text response: <settings-btn tab="providers" />`;

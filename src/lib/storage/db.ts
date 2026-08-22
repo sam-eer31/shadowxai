@@ -1,8 +1,8 @@
 import { openDB, type IDBPDatabase } from 'idb';
-import type { Conversation, ExportData } from '@/lib/types';
+import type { Conversation, ExportData, Scratchpad } from '@/lib/types';
 
 const DB_NAME = 'shadow-db';
-const DB_VERSION = 2;
+const DB_VERSION = 4;
 
 interface ShadowDB {
   conversations: {
@@ -18,6 +18,10 @@ interface ShadowDB {
     key: string;
     value: import('@/lib/types').Artifact;
     indexes: { 'by-conversation': string };
+  };
+  scratchpads: {
+    key: string;
+    value: Scratchpad;
   };
 }
 
@@ -45,6 +49,14 @@ function getDB(): Promise<IDBPDatabase<ShadowDB>> {
           });
           artifactStore.createIndex('by-conversation', 'conversationId');
         }
+        // Scratchpads store (v4: keyed by messageId)
+        if (db.objectStoreNames.contains('scratchpads')) {
+          db.deleteObjectStore('scratchpads');
+        }
+        const scratchpadStore = db.createObjectStore('scratchpads', {
+          keyPath: 'messageId',
+        });
+        scratchpadStore.createIndex('by-conversation', 'conversationId');
       },
     });
   }
@@ -113,6 +125,18 @@ export async function saveArtifact(artifact: import('@/lib/types').Artifact): Pr
 export async function getArtifactsByConversation(conversationId: string): Promise<import('@/lib/types').Artifact[]> {
   const db = await getDB();
   return db.getAllFromIndex('artifacts', 'by-conversation', conversationId);
+}
+
+// --- Scratchpads ---
+
+export async function getScratchpad(messageId: string): Promise<Scratchpad | undefined> {
+  const db = await getDB();
+  return db.get('scratchpads', messageId);
+}
+
+export async function saveScratchpad(scratchpad: Scratchpad): Promise<void> {
+  const db = await getDB();
+  await db.put('scratchpads', scratchpad);
 }
 
 // --- Settings ---

@@ -30,6 +30,7 @@ export function getAvailableTools(creds: ProviderCredentials): Set<string> {
   available.add('current_time');
   available.add('create_artifact');
   available.add('read_artifact');
+  available.add('read_scratchpad');
   available.add('get_tool_definitions');
 
   return available;

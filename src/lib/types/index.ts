@@ -66,6 +66,7 @@ export interface Message {
   createdAt: number;
   isStreaming?: boolean;
   parentId?: string;
+  scratchpad?: import('@/lib/types').Scratchpad;
 }
 
 // --- Conversation ---
@@ -224,4 +225,38 @@ export interface ExportData {
   version: number;
   exportedAt: number;
   conversations: Conversation[];
+}
+
+// --- Scratchpad System ---
+
+export interface ScratchpadItem {
+  id: string;
+  content: string;
+  status?: 'active' | 'completed' | 'irrelevant';
+  updatedAt: number;
+}
+
+export interface ScratchpadArtifact {
+  id: string;
+  filename: string;
+  description: string;
+  version: number;
+}
+
+export interface ScratchpadImage {
+  promptUsed: string;
+  context: string;
+}
+
+export interface Scratchpad {
+  messageId: string;
+  conversationId: string;
+  summary: string;
+  goals: ScratchpadItem[];
+  decisions: ScratchpadItem[];
+  userPreferences: ScratchpadItem[];
+  openQuestions: ScratchpadItem[];
+  importantFacts: ScratchpadItem[];
+  artifacts: ScratchpadArtifact[];
+  generatedImages: ScratchpadImage[];
 }
