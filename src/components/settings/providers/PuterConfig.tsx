@@ -237,6 +237,7 @@ export function PuterConfig() {
                                 'DeepSeek V4 Flash:free': { cost: 0, count: 0, units: 0 },
                                 'GPT-5.6 Luna': { cost: 0, count: 0, units: 0 },
                                 'GLM-4.7 Flash': { cost: 0, count: 0, units: 0 },
+                                'Moonshot Kimi K2.6:free': { cost: 0, count: 0, units: 0 },
                                 'FLUX.2 Klein 4B': { cost: 0, count: 0, units: 0 },
                                 'GPT Image 1 Mini': { cost: 0, count: 0, units: 0 },
                                 'GPT Image 2': { cost: 0, count: 0, units: 0 }
@@ -278,6 +279,10 @@ export function PuterConfig() {
                                   combined['GLM-4.7 Flash'].cost += itemCost;
                                   combined['GLM-4.7 Flash'].count += itemCount;
                                   combined['GLM-4.7 Flash'].units += itemUnits;
+                                } else if (lower.includes('kimi') && lower.includes('free')) {
+                                  combined['Moonshot Kimi K2.6:free'].cost += itemCost;
+                                  combined['Moonshot Kimi K2.6:free'].count += itemCount;
+                                  combined['Moonshot Kimi K2.6:free'].units += itemUnits;
                                 } else if (lower.includes('klein-4b')) {
                                   if (!combined['FLUX.2 Klein 4B']) combined['FLUX.2 Klein 4B'] = { cost: 0, count: 0, units: 0 };
                                   combined['FLUX.2 Klein 4B'].cost += itemCost;

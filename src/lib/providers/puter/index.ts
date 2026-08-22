@@ -29,6 +29,11 @@ const PUTER_MODEL_CAPS: Record<
     tools: true,
     thinking: 'none'
   },
+  'moonshotai/kimi-k2.6:free': {
+    vision: false,
+    tools: true,
+    thinking: 'none'
+  },
 };
 
 /**
@@ -64,6 +69,7 @@ export class PuterProvider implements AIProvider {
       { id: 'deepseek-v4-flash', name: 'DeepSeek V4 Flash' },
       { id: 'deepseek-v4-flash:free', name: 'DeepSeek V4 Flash:free' },
       { id: 'z-ai/glm-4.7-flash', name: 'GLM-4.7 Flash' },
+      { id: 'moonshotai/kimi-k2.6:free', name: 'Moonshot Kimi K2.6:free' },
     ];
 
     return models.map((m) => ({
