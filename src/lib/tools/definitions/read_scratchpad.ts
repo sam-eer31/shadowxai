@@ -4,7 +4,7 @@ import { useChatStore } from '@/stores/chat-store';
 
 export const readScratchpadTool: ToolDefinition = {
   name: 'read_scratchpad',
-  description: 'Read the background memory scratchpad for the current conversation. Use this whenever you need to recall past goals, decisions, user preferences, or see a list of created artifacts/images.',
+  description: 'Read the background memory scratchpad for the current conversation. Use this whenever you need to recall important facts, or see a list of created artifacts/images.',
   icon: 'database',
   category: 'system',
   inputSchema: {
@@ -34,11 +34,7 @@ export const readScratchpadTool: ToolDefinition = {
 
       // Return a clean representation
       const data = {
-        summary: scratchpad.summary || 'No summary yet.',
-        goals: scratchpad.goals,
-        decisions: scratchpad.decisions,
-        userPreferences: scratchpad.userPreferences,
-        openQuestions: scratchpad.openQuestions,
+        summaries: scratchpad.summaries?.length ? scratchpad.summaries : ['No summaries yet.'],
         importantFacts: scratchpad.importantFacts,
         artifacts: scratchpad.artifacts,
         generatedImages: scratchpad.generatedImages,

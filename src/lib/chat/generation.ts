@@ -1,14 +1,15 @@
 import { useChatStore, getActiveMessages } from '@/stores/chat-store';
-import { useSettingsStore } from '@/stores/settings-store';
+import { useSettingsStore, DEFAULT_SYSTEM_PROMPT } from '@/stores/settings-store';
 import { useUIStore } from '@/stores/ui-store';
 import { getChatProvider } from '@/lib/providers';
 import { getAllTools, toProviderTools } from '@/lib/tools/registry';
 import { executeToolCalls } from './tool-executor';
+import { parseBranchArtifacts } from './artifact-parser';
 import { generateId } from '@/lib/utils/id';
 import { saveConversation, saveArtifact } from '@/lib/storage/db';
 import { extractBase64Data } from '@/lib/utils/image';
 import { useArtifactStore } from '@/stores/artifact-store';
-import { processScratchpadAsync } from './scratchpad';
+import { processScratchpadAsync, getActiveScratchpad } from './scratchpad';
 import type {
   Conversation,
   Message,
@@ -31,7 +32,7 @@ export async function generateResponse(
   const store = useChatStore;
 
   const abortController = new AbortController();
-  
+
   const updateGenState = (updates: Partial<import('@/stores/chat-store').GenerationState>) => {
     store.setState((state) => ({
       generations: {
@@ -87,7 +88,7 @@ export async function generateResponse(
       }
 
       // Only inject discovery tools + previously used tools
-      const dynamicToolsToInject = getAllTools().filter(t => 
+      const dynamicToolsToInject = getAllTools().filter(t =>
         t.name === 'get_tool_definitions' ||
         usedToolNames.has(t.name)
       );
@@ -144,7 +145,7 @@ export async function generateResponse(
           messages: requestMessages,
           tools: providerTools
         })
-      }).catch(() => {});
+      }).catch(() => { });
 
       const stream = provider.chat({
         model: modelId,
@@ -213,7 +214,14 @@ export async function generateResponse(
         }
 
         if (chunk.type === 'tool_call' && chunk.toolCall) {
-          pendingToolCalls.push(chunk.toolCall);
+          const idx = pendingToolCalls.findIndex(
+            (t) => (chunk.toolCall!.id && t.id === chunk.toolCall!.id) || (!chunk.toolCall!.id && t.name === chunk.toolCall!.name)
+          );
+          if (idx >= 0) {
+            pendingToolCalls[idx] = chunk.toolCall;
+          } else {
+            pendingToolCalls.push(chunk.toolCall);
+          }
           updateGenState({ pendingToolCalls: [...pendingToolCalls] });
         }
 
@@ -238,10 +246,10 @@ export async function generateResponse(
           rawModelThoughtResponse: fullThought,
           toolCalls: pendingToolCalls
         })
-      }).catch(() => {});
+      }).catch(() => { });
 
       // If we got tool calls, execute them and continue
-      if (pendingToolCalls.length > 0 && toolTurns < MAX_TOOL_TURNS) {
+      if (pendingToolCalls.length > 0) {
         toolTurns++;
 
         // Add assistant message with tool calls
@@ -276,6 +284,20 @@ export async function generateResponse(
           updatedAt: Date.now(),
         };
 
+        // Immediately update store so UI shows the tool in execution phase with live spinner
+        const intermediateConvs = store
+          .getState()
+          .conversations.map((c) => (c.id === conv.id ? conv : c));
+        store.setState({ conversations: intermediateConvs });
+
+        // Clear streaming state immediately so StreamingBubble does not duplicate assistantMsg
+        updateGenState({
+          streamingContent: '',
+          streamingThought: '',
+          thoughtTimeMs: 0,
+          pendingToolCalls: [],
+        });
+
         // Clear consumed text and thought to prevent duplication if we break out of the loop
         fullText = '';
         fullThought = '';
@@ -294,25 +316,70 @@ export async function generateResponse(
           }
         }
 
+        let currentScratchpad = getActiveScratchpad(conv);
+        let scratchpadUpdated = false;
+
         let results: ToolResult[];
-        if (isLoop) {
-          // Model is stuck in a loop calling the exact same tools
+        if (isLoop || toolTurns >= MAX_TOOL_TURNS) {
+          // Model is stuck in a loop or hit the maximum tool limit
           results = pendingToolCalls.map(tc => ({
             toolCallId: tc.id,
             name: tc.name,
-            result: 'SYSTEM WARNING: You already executed this exact tool call in the previous turn. Do not repeat it. Please provide a final answer to the user based on the information you have.',
+            result: 'SYSTEM WARNING: You either repeated this exact tool call or reached the maximum tool limit. Do not call any more tools. Please provide a final text answer to the user based on the information you have.',
             isError: true
           }));
         } else {
+          // Compute branch artifacts
+          const { artifacts: branchArtifacts } = parseBranchArtifacts(conv.id, conv.messages);
+
           // Execute tools normally
-          results = await executeToolCalls(pendingToolCalls);
+          results = await executeToolCalls(pendingToolCalls, { 
+            conversationId: conv.id, 
+            scratchpad: currentScratchpad,
+            branchArtifacts
+          });
         }
 
         allToolCalls.push(...pendingToolCalls);
         allToolResults.push(...results);
 
         // Add tool result messages
-        for (const result of results) {
+        for (let i = 0; i < results.length; i++) {
+          const result = results[i];
+          const tc = pendingToolCalls[i];
+
+          // Auto-update scratchpad for artifacts and images
+          if (!result.isError) {
+            if (result.name === 'create_artifact') {
+              const regex = /<artifact id="([^"]+)">/g;
+              let match;
+              let fileIndex = 0;
+              const files = Array.isArray(tc.arguments.files) ? tc.arguments.files : [];
+              while ((match = regex.exec(result.result as string)) !== null) {
+                const file = files[fileIndex] || {};
+                currentScratchpad.artifacts.push({
+                  id: match[1],
+                  filename: file.filename || 'unnamed_artifact',
+                  description: `Created artifact: ${file.filename || 'unnamed'}`,
+                  version: 1
+                });
+                scratchpadUpdated = true;
+                fileIndex++;
+              }
+            } else if (result.name === 'image_generation') {
+              try {
+                const parsed = JSON.parse(result.result as string);
+                if (parsed.type === 'generated_image') {
+                  currentScratchpad.generatedImages.push({
+                    promptUsed: parsed.prompt,
+                    context: 'Generated by user request'
+                  });
+                  scratchpadUpdated = true;
+                }
+              } catch (e) { }
+            }
+          }
+
           // Check if this is an image generation result
           let toolContent: MessageContent[];
           try {
@@ -339,6 +406,7 @@ export async function generateResponse(
             content: toolContent,
             createdAt: Date.now(),
             parentId: conv.currentNodeId,
+            ...(scratchpadUpdated && i === results.length - 1 ? { scratchpad: { ...currentScratchpad } } : {})
           };
 
           conv = {
@@ -378,32 +446,53 @@ export async function generateResponse(
 
     // Add final assistant message
     if (fullText || fullThought || allToolCalls.length === 0) {
-      // Extract artifacts to DB
-      const artifactRegex = /<artifact id="([^"]+)">([\s\S]*?)<\/artifact>/g;
+      let currentScratchpad = getActiveScratchpad(conv);
+      let scratchpadUpdated = false;
+
+      // Extract artifacts to DB with flexible attribute parsing
+      // Matches: ### File: `filename.ext`\n```language\ncontent\n```
+      const artifactRegex = /(?:^|\n)### File:\s*`?([^`\n]+)`?\s*\n\s*```(\w*)\n([\s\S]*?)(?:```|$)/g;
       let match;
       while ((match = artifactRegex.exec(fullText)) !== null) {
-        const id = match[1];
-        let rawContent = match[2].trim();
-        // Strip the ```language \n and ``` if present
-        const codeBlockRegex = /^```[a-zA-Z0-9-]*\n([\s\S]*?)\n```$/;
-        const codeMatch = rawContent.match(codeBlockRegex);
-        if (codeMatch) {
-          rawContent = codeMatch[1].trim();
+        const filename = match[1].trim();
+        const language = match[2].trim() || 'text';
+        let rawContent = match[3];
+
+        if (!filename) continue;
+
+        const originalId = filename.replace(/[^a-zA-Z0-9]/g, '_');
+        const dbId = `${conv.id}_${originalId}`;
+        const extension = filename.includes('.') ? filename.split('.').pop()! : 'txt';
+
+        if (rawContent.endsWith('\n')) {
+          rawContent = rawContent.slice(0, -1);
         }
 
-        const meta = useArtifactStore.getState().getArtifact(id);
-        if (meta) {
-          await saveArtifact({
-            id,
-            conversationId: conv.id,
-            filename: meta.filename,
-            extension: meta.extension,
-            language: meta.language || meta.extension,
-            content: rawContent,
-            createdAt: Date.now(),
-            updatedAt: Date.now()
-          });
-        }
+        const storeMeta = useArtifactStore.getState().getArtifact(dbId);
+
+        await saveArtifact({
+          id: dbId,
+          conversationId: conv.id,
+          filename,
+          extension,
+          language,
+          content: rawContent,
+          createdAt: Date.now(),
+          updatedAt: Date.now()
+        });
+
+        const newVersion = storeMeta ? (storeMeta.version ? storeMeta.version + 1 : (storeMeta as any).currentVersion ? (storeMeta as any).currentVersion + 1 : 2) : 1;
+        useArtifactStore.getState().addArtifact(dbId, filename, extension, language, newVersion);
+
+        // Deduplicate: remove if it already exists in the array (e.g. updating an existing artifact)
+        currentScratchpad.artifacts = currentScratchpad.artifacts.filter(a => a.id !== dbId);
+        currentScratchpad.artifacts.push({
+          id: dbId,
+          filename,
+          description: `Created artifact: ${filename}`,
+          version: newVersion
+        });
+        scratchpadUpdated = true;
       }
 
       const contentBlocks: MessageContent[] = [];
@@ -427,6 +516,7 @@ export async function generateResponse(
         provider: settings.activeProvider,
         createdAt: Date.now(),
         parentId: conv.currentNodeId,
+        ...(scratchpadUpdated ? { scratchpad: { ...currentScratchpad } } : {})
       };
 
       conv = {
@@ -448,7 +538,7 @@ export async function generateResponse(
       .getState()
       .conversations.map((c) => (c.id === conv.id ? conv : c));
     store.setState({ conversations });
-    
+
     updateGenState({
       isGenerating: false,
       abortController: null,
@@ -491,32 +581,96 @@ function buildProviderMessages(
   const result: ProviderMessage[] = [];
 
   // Get available tool names to inject into system prompt
-  const baseTools = ['calculator', 'weather', 'current_time', 'create_artifact', 'read_artifact'];
-  
-  const hasImageCreds = (settings.credentials as any).puter?.signedIn || 
-                        ((settings.credentials as any).cloudflare?.accountId && (settings.credentials as any).cloudflare?.apiToken && (settings.credentials as any).cloudflare?.enabled !== false);
+  const baseTools = ['calculator', 'weather', 'current_time', 'read_artifact', 'read_scratchpad'];
+
+  const hasImageCreds = (settings.credentials as any).puter?.signedIn ||
+    ((settings.credentials as any).cloudflare?.accountId && (settings.credentials as any).cloudflare?.apiToken && (settings.credentials as any).cloudflare?.enabled !== false);
   const hasWebCreds = !!(settings.credentials as any).tavily?.apiKey;
 
   const availableToolNames = [...baseTools];
   if (hasImageCreds) availableToolNames.push('image_generation');
   if (hasWebCreds && settings.isWebSearchEnabled) availableToolNames.push('web_search');
 
-  let systemPrompt = settings.systemPrompt;
-  if (availableToolNames.length > 0) {
-    systemPrompt += `\n\nYou have access to the following tools: ${availableToolNames.join(', ')}. If you need to use any of these tools to fulfill the user's request, you MUST first call the 'get_tool_definitions' tool with their names to get their required parameters.`;
+  const now = new Date();
+  const dateStr = now.toLocaleDateString('en-US', {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  });
+  const timeStr = now.toLocaleTimeString('en-US', {
+    hour: '2-digit',
+    minute: '2-digit',
+    timeZoneName: 'short',
+  });
+
+  const promptSections: string[] = [];
+
+  // Base prompt / personality
+  promptSections.push(settings.systemPrompt?.trim() || DEFAULT_SYSTEM_PROMPT);
+
+  // Current Context
+  let contextSection = `# Current Context\n- Date: ${dateStr}\n- Time: ${timeStr}`;
+  if (settings.userLocation?.trim()) {
+    contextSection += `\n- User Location: ${settings.userLocation.trim()}`;
   }
+  promptSections.push(contextSection);
 
-  systemPrompt += `\n\nCRITICAL RULE: Whenever you write or generate any code, scripts, HTML, CSS, or structured data files (like JSON/YAML), you MUST use the 'create_artifact' tool to save it into an isolated file block. NEVER write raw markdown code blocks in your conversational text. Always place code inside an artifact.`;
-  systemPrompt += `\n\nYou are supported by an automated background Scratchpad that tracks user preferences, active goals, past decisions, generated artifacts, and images for this conversation. If you need historical context beyond your immediate memory, you MUST call the 'read_scratchpad' tool to view it.`;
+  // Formatting Guidelines
+  promptSections.push(
+    `# Formatting & Guidelines\n` +
+    `- Format your responses using clean GitHub Flavored Markdown (headers, bullet points, tables).\n` +
+    `- For mathematical equations and formulas, use standard LaTeX syntax: inline with \`$...$\` and block formulas with \`$$...$$\`.\n` +
+    `- Be direct, accurate, and concise. Avoid unnecessary conversational filler.`
+  );
 
+  // Tool Calling Workflow
+  let toolSection = `# Tool Calling Workflow\n`;
+  if (availableToolNames.length > 0) {
+    toolSection += `You have access to the following tools: ${availableToolNames.join(', ')}.\n` +
+      `- Before calling any tool you do not yet know the parameters for, you MUST call 'get_tool_definitions' with the tool names to fetch their JSON schemas.\n`;
+  }
+  toolSection += `- You are supported by an automated background Scratchpad that tracks important facts, generated artifacts, and images. If you need historical conversation context beyond your immediate memory, call 'read_scratchpad'.\n` +
+    `- When you receive tool execution results, synthesize the information and provide a complete, direct user-facing response.\n` +
+    `- NEVER output internal action markers or placeholder phrases (such as '[Executed tools]' or '[Action: ...]') in your final answer.`;
+  promptSections.push(toolSection);
+
+  // Artifact Guidelines
+  promptSections.push(
+    `# Artifact Guidelines\n` +
+    `Artifacts are dedicated, interactive file containers rendered in the UI for complete, standalone code or structured documents.\n\n` +
+    `1. **When to CREATE or UPDATE an Artifact**:\n` +
+    `   - Substantial, standalone code files (scripts > 15 lines, full HTML/CSS/JS web pages, React components, complete programs) or complete structured data files (JSON, CSV, SVG diagrams).\n` +
+    `   - **Format**: Directly stream the code in your response using a standard Markdown header and code block. You MUST use exactly this format:\n` +
+    `     ### File: \`filename.ext\`\n` +
+    `     \`\`\`language\n` +
+    `     // complete code here\n` +
+    `     \`\`\`\n` +
+    `   - **CRITICAL**: An artifact represents a SINGLE RAW FILE. NEVER merge multiple files into one block. If you want to provide multiple files (e.g. a Python version and a JavaScript version), you MUST create multiple separate \`### File:\` blocks.\n` +
+    `   - Do NOT call a tool to create artifacts. Stream them directly in your response text.\n` +
+    `   - Do NOT put conversational text inside the code block.\n\n` +
+    `2. **When to use Standard Code Blocks (NO Artifact)**:\n` +
+    `   - Short code snippets, one-liners, shell/terminal commands (e.g. \`npm install\`, \`git commit\`), config examples, or small illustrative diffs.\n` +
+    `   - Just use standard \`\`\`language ... \`\`\` code blocks WITHOUT the \`### File:\` header.`
+  );
+
+  // UI Action Buttons & Fallbacks
+  const fallbackRules: string[] = [];
   if (!hasImageCreds) {
-    systemPrompt += `\n\nCRITICAL RULE: If the user asks to generate an image, tell them they need to configure Image Generation in Settings. Include this exact button in your text response: <settings-btn tab="providers" />`;
+    fallbackRules.push(`- If the user asks to generate an image: Tell them Image Generation is not configured, and include this exact button in your response: <settings-btn tab="providers" />`);
   }
   if (!hasWebCreds || !settings.isWebSearchEnabled) {
     const reason = !hasWebCreds ? 'configure Web Search in Settings' : 'toggle on Web Search in the chat input area';
-    systemPrompt += `\n\nCRITICAL RULE: If the user asks to search the web, tell them they need to ${reason}. ` +
-      (!hasWebCreds ? `Include this exact button in your text response: <settings-btn tab="services" />` : ``);
+    const button = !hasWebCreds ? ` Include this exact button in your response: <settings-btn tab="services" />` : '';
+    fallbackRules.push(`- If the user asks to search the web: Tell them they need to ${reason}.${button}`);
   }
+
+  if (fallbackRules.length > 0) {
+    promptSections.push(`# UI Action Buttons & Fallbacks\n` + fallbackRules.join('\n'));
+  }
+
+  const systemPrompt = promptSections.join('\n\n');
+
   // Always add system prompt
   result.push({
     role: 'system',
@@ -540,9 +694,9 @@ function buildProviderMessages(
         case 'text':
           if (content.text) {
             let trimmedText = content.text;
-            const artifactRegex = /<artifact id="([^"]+)">([\s\S]*?)<\/artifact>/g;
-            trimmedText = trimmedText.replace(artifactRegex, (match, id) => {
-              return `\n[Artifact saved (ID: ${id}). Use read_artifact to view contents]\n`;
+            const artifactRegex = /(### File:\s*`?([^`\n]+)`?\s*\n\s*```\w*\n)([\s\S]*?)(```)/g;
+            trimmedText = trimmedText.replace(artifactRegex, (match, header, filename, code, footer) => {
+              return `${header}// Content omitted for brevity. Use read_artifact to view contents.\n${footer}`;
             });
             parts.push({ type: 'text', text: trimmedText });
           }

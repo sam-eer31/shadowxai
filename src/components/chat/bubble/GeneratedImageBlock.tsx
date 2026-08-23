@@ -11,7 +11,7 @@ export function GeneratedImageBlock({ img }: GeneratedImageBlockProps) {
   if (!img.imageUrl) return null;
 
   return (
-    <div className="mb-3">
+    <div>
       <div className="inline-block rounded-2xl overflow-hidden shadow-lg max-w-full sm:max-w-sm border" style={{ borderColor: 'var(--border)' }}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img

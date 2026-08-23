@@ -5,7 +5,6 @@ import { weatherTool } from './definitions/weather';
 import { currentTimeTool } from './definitions/current-time';
 import { imageGenerationTool } from './definitions/image-generation';
 import { getToolDefinitions } from './definitions/get-tool-definitions';
-import { createArtifactTool } from './definitions/create-artifact';
 import { readArtifactTool } from './definitions/read-artifact';
 import { readScratchpadTool } from './definitions/read_scratchpad';
 
@@ -16,7 +15,6 @@ const ALL_TOOLS: ToolDefinition[] = [
   weatherTool,
   currentTimeTool,
   imageGenerationTool,
-  createArtifactTool,
   readArtifactTool,
   readScratchpadTool,
   getToolDefinitions,

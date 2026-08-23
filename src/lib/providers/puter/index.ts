@@ -29,6 +29,16 @@ const PUTER_MODEL_CAPS: Record<
     tools: true,
     thinking: 'none'
   },
+  'z-ai/glm-5.2:free': {
+    vision: false,
+    tools: true,
+    thinking: 'none'
+  },
+  'xiaomi/mimo-v2.5': {
+    vision: false,
+    tools: true,
+    thinking: 'none'
+  },
   'moonshotai/kimi-k2.6:free': {
     vision: false,
     tools: true,
@@ -69,6 +79,8 @@ export class PuterProvider implements AIProvider {
       { id: 'deepseek-v4-flash', name: 'DeepSeek V4 Flash' },
       { id: 'deepseek-v4-flash:free', name: 'DeepSeek V4 Flash:free' },
       { id: 'z-ai/glm-4.7-flash', name: 'GLM-4.7 Flash' },
+      { id: 'z-ai/glm-5.2:free', name: 'GLM-5.2:free' },
+      { id: 'xiaomi/mimo-v2.5', name: 'Xiaomi MIMO V2.5' },
       { id: 'moonshotai/kimi-k2.6:free', name: 'Moonshot Kimi K2.6:free' },
     ];
 
@@ -121,9 +133,14 @@ export class PuterProvider implements AIProvider {
           ? content[0].text 
           : content;
           
-      // If the assistant made a tool call but output no text, provide a placeholder so the message isn't empty
-      if (msg.role === 'assistant' && msg.toolCalls && !finalContent) {
-        finalContent = "[Executed tools]";
+      // Puter requires every message to have non-empty content.
+      // If the assistant made a tool call but output no text, use natural language instead of raw action syntax.
+      if (!finalContent || (typeof finalContent === 'string' && finalContent.trim() === '') || (Array.isArray(finalContent) && finalContent.length === 0)) {
+        if (msg.role === 'assistant' && msg.toolCalls && msg.toolCalls.length > 0) {
+          finalContent = msg.toolCalls.map(tc => `Let me check ${tc.name.replace(/_/g, ' ')}.`).join(' ');
+        } else {
+          finalContent = '...';
+        }
       }
 
       const formattedMsg: any = {
@@ -182,8 +199,31 @@ export class PuterProvider implements AIProvider {
                   name: tc.function?.name || '',
                   arguments: tc.function?.arguments || '',
                 };
-              } else if (toolCallsBuffer[tc.index] && tc.function?.arguments) {
-                toolCallsBuffer[tc.index].arguments += tc.function.arguments;
+                if (tc.function?.name) {
+                  yield {
+                    type: 'tool_call',
+                    toolCall: {
+                      id: tc.id,
+                      name: tc.function.name,
+                      arguments: {},
+                    },
+                  };
+                }
+              } else if (toolCallsBuffer[tc.index]) {
+                if (tc.function?.arguments) {
+                  toolCallsBuffer[tc.index].arguments += tc.function.arguments;
+                }
+                if (tc.function?.name && !toolCallsBuffer[tc.index].name) {
+                  toolCallsBuffer[tc.index].name = tc.function.name;
+                  yield {
+                    type: 'tool_call',
+                    toolCall: {
+                      id: toolCallsBuffer[tc.index].id,
+                      name: tc.function.name,
+                      arguments: {},
+                    },
+                  };
+                }
               }
             }
           } 
@@ -199,6 +239,16 @@ export class PuterProvider implements AIProvider {
                   name: tc.function?.name || '',
                   arguments: tc.function?.arguments || '',
                 };
+                if (tc.function?.name) {
+                  yield {
+                    type: 'tool_call',
+                    toolCall: {
+                      id: tc.id,
+                      name: tc.function.name,
+                      arguments: typeof tc.function?.arguments === 'object' ? tc.function.arguments : {},
+                    },
+                  };
+                }
               } else if (toolCallsBuffer[idx] && tc.function?.arguments) {
                 toolCallsBuffer[idx].arguments += tc.function.arguments;
               }
@@ -220,17 +270,26 @@ export class PuterProvider implements AIProvider {
               return false;
             });
             
+            const tcId = chunk.id || (existingIdx !== undefined ? toolCallsBuffer[Number(existingIdx)].id : `tc_${Date.now()}`);
             if (existingIdx !== undefined) {
               toolCallsBuffer[Number(existingIdx)].arguments = args;
             } else {
               const newIdx = Object.keys(toolCallsBuffer).length;
               toolCallsBuffer[newIdx] = {
-                id: chunk.id || `tc_${Date.now()}`,
+                id: tcId,
                 name: chunk.name,
                 arguments: args,
                 ...(chunk.canonical_id ? { canonical_id: chunk.canonical_id } : {})
               } as any;
             }
+            yield {
+              type: 'tool_call',
+              toolCall: {
+                id: tcId,
+                name: chunk.name,
+                arguments: args,
+              },
+            };
           }
           // 4. Fallback for text extraction
           else if (chunk?.text) {

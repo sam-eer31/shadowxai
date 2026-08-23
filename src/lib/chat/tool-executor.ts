@@ -7,7 +7,7 @@ const TOOL_TIMEOUT_MS = 30000;
 /**
  * Execute a single tool call with timeout and error handling.
  */
-export async function executeTool(toolCall: ToolCall): Promise<ToolResult> {
+export async function executeTool(toolCall: ToolCall, context?: { conversationId?: string, scratchpad?: import('@/lib/types').Scratchpad, branchArtifacts?: Record<string, import('@/lib/types').BranchArtifactState> }): Promise<ToolResult> {
   const tool = getToolByName(toolCall.name);
 
   if (!tool) {
@@ -22,7 +22,7 @@ export async function executeTool(toolCall: ToolCall): Promise<ToolResult> {
   try {
     // Execute with timeout
     const result = await Promise.race([
-      tool.execute(toolCall.arguments),
+      tool.execute(toolCall.arguments, context),
       new Promise<ToolResult>((_, reject) =>
         setTimeout(
           () => reject(new Error('Tool execution timed out (30s).')),
@@ -46,10 +46,11 @@ export async function executeTool(toolCall: ToolCall): Promise<ToolResult> {
  * Execute multiple tool calls with a limit to prevent infinite loops.
  */
 export async function executeToolCalls(
-  toolCalls: ToolCall[]
+  toolCalls: ToolCall[],
+  context?: { conversationId?: string, scratchpad?: import('@/lib/types').Scratchpad, branchArtifacts?: Record<string, import('@/lib/types').BranchArtifactState> }
 ): Promise<ToolResult[]> {
   // Enforce maximum tool calls per turn
   const limited = toolCalls.slice(0, MAX_TOOL_CALLS_PER_TURN);
-  const results = await Promise.all(limited.map(executeTool));
+  const results = await Promise.all(limited.map(tc => executeTool(tc, context)));
   return results;
 }

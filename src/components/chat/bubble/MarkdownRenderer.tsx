@@ -13,10 +13,11 @@ import type { ComponentPropsWithoutRef } from 'react';
 
 interface MarkdownRendererProps {
   content: string;
+  artifactVersions?: Record<string, number>;
+  branchArtifacts?: Record<string, import('@/lib/types').BranchArtifactState>;
 }
 
 const markdownComponents: any = {
-  // Code blocks with copy button
   code(props: ComponentPropsWithoutRef<'code'>) {
     const { children, className, ...rest } = props;
     const match = /language-(\w+)/.exec(className || '');
@@ -39,7 +40,6 @@ const markdownComponents: any = {
       </code>
     );
   },
-  // Open links in new tab
   a(props: ComponentPropsWithoutRef<'a'>) {
     return (
       <a
@@ -49,7 +49,6 @@ const markdownComponents: any = {
       />
     );
   },
-  // Wrap table in scrollable container for mobile
   table(props: ComponentPropsWithoutRef<'table'>) {
     return (
       <div className="table-wrapper">
@@ -57,15 +56,13 @@ const markdownComponents: any = {
       </div>
     );
   },
-  // Wrap pre for code blocks
   pre(props: ComponentPropsWithoutRef<'pre'>) {
     return <>{props.children}</>;
   },
-  // Artifact blocks
-  artifact(props: any) {
-    return <ArtifactBlock id={props.id} {...props}>{props.children}</ArtifactBlock>;
+  p(props: ComponentPropsWithoutRef<'p'>) {
+    const { node, className, ...rest } = props as any;
+    return <div className={`mb-4 last:mb-0 ${className || ''}`} {...rest} />;
   },
-  // Custom settings button
   'settings-btn'(props: any) {
     const { tab, section } = props;
     
@@ -87,24 +84,112 @@ const markdownComponents: any = {
   }
 };
 
-const preprocessLaTeX = (content: string) => {
-  // Replace block math: \[ ... \] -> $$ ... $$
-  // Replace inline math: \( ... \) -> $ ... $
+type ChatBlock =
+  | { type: 'markdown'; content: string }
+  | { type: 'artifact'; id: string; filename?: string; language?: string; extension?: string; content: string; isOpen: boolean }
+  | { type: 'artifact-ref'; id: string };
+
+function parseChatBlocks(text: string): ChatBlock[] {
+  const blocks: ChatBlock[] = [];
+  
+  // Regex to match Markdown-Native artifacts
+  // Matches: ### File: `filename.ext`\n```language\ncontent\n```
+  const regex = /(?:^|\n)### File:\s*`?([^`\n]+)`?\s*\n\s*```(\w*)\n([\s\S]*?)(?:```|$)/g;
+  
+  let lastIndex = 0;
+  let match;
+  
+  while ((match = regex.exec(text)) !== null) {
+    if (match.index > lastIndex) {
+      blocks.push({ type: 'markdown', content: text.slice(lastIndex, match.index) });
+    }
+    
+    const filename = match[1].trim();
+    const language = match[2].trim() || 'text';
+    let cleanContent = match[3];
+    
+    // Determine extension from filename
+    const extension = filename.includes('.') ? filename.split('.').pop()! : 'txt';
+    // ID is implicitly generated from filename, but in UI we just pass the originalId 
+    // and ArtifactBlock handles prefixing conversationId.
+    const id = filename.replace(/[^a-zA-Z0-9]/g, '_');
+    
+    // Check if the stream hasn't closed the backticks yet
+    const isClosed = text.substring(match.index + match[0].length).startsWith('```') || match[0].endsWith('```');
+    
+    if (cleanContent.endsWith('\n')) {
+      cleanContent = cleanContent.slice(0, -1);
+    }
+    
+    blocks.push({
+      type: 'artifact',
+      id,
+      filename,
+      language,
+      extension,
+      content: cleanContent,
+      isOpen: !isClosed
+    });
+    
+    lastIndex = regex.lastIndex;
+  }
+  
+  if (lastIndex < text.length) {
+    blocks.push({ type: 'markdown', content: text.slice(lastIndex) });
+  }
+  
+  return blocks;
+}
+
+function preprocessMarkdown(content: string) {
   return content
     .replace(/\\\[([\s\S]*?)\\\]/g, '$$$$$1$$$$')
     .replace(/\\\(([\s\S]*?)\\\)/g, '$$$1$$');
-};
+}
 
-export function MarkdownRenderer({ content }: MarkdownRendererProps) {
-  const processedContent = preprocessLaTeX(content);
+export function MarkdownRenderer({ content, artifactVersions, branchArtifacts }: MarkdownRendererProps) {
+  const blocks = parseChatBlocks(content);
 
   return (
-    <ReactMarkdown
-      remarkPlugins={[remarkGfm, remarkMath]}
-      rehypePlugins={[rehypeRaw, rehypeKatex]}
-      components={markdownComponents}
-    >
-      {processedContent}
-    </ReactMarkdown>
+    <>
+      {blocks.map((block, i) => {
+        if (block.type === 'markdown') {
+          // If the markdown block is completely empty or just spaces, we can skip rendering it
+          if (!block.content.trim()) return null;
+          
+          return (
+            <ReactMarkdown
+              key={i}
+              remarkPlugins={[remarkGfm, remarkMath]}
+              rehypePlugins={[rehypeRaw, rehypeKatex]}
+              components={markdownComponents}
+            >
+              {preprocessMarkdown(block.content)}
+            </ReactMarkdown>
+          );
+        }
+        
+        if (block.type === 'artifact') {
+          return (
+            <ArtifactBlock 
+              key={i} 
+              id={block.id} 
+              filename={block.filename} 
+              language={block.language}
+              extension={block.extension}
+              streamingContent={block.content}
+              artifactVersions={artifactVersions}
+              branchArtifacts={branchArtifacts}
+            />
+          );
+        }
+        
+        if (block.type === 'artifact-ref') {
+          return <ArtifactBlock key={i} id={block.id} isRef={true} artifactVersions={artifactVersions} branchArtifacts={branchArtifacts} />;
+        }
+        
+        return null;
+      })}
+    </>
   );
 }

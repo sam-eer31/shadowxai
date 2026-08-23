@@ -9,8 +9,8 @@ import type {
 import { setSetting, getSetting } from '@/lib/storage/db';
 import { useUIStore } from './ui-store';
 
-const DEFAULT_SYSTEM_PROMPT =
-  'You are a helpful AI assistant. Answer accurately, clearly, and concisely. Use available tools when useful. Follow the user\'s instructions and never claim to have performed an action you did not perform.';
+export const DEFAULT_SYSTEM_PROMPT =
+  'You are OpenChat, an intelligent, helpful, and versatile AI assistant. Answer accurately, clearly, and concisely. Follow instructions carefully, provide well-reasoned answers, and use available tools when appropriate. Never claim to have executed an action or tool you did not actually perform.';
 
 export function getAvailableTools(creds: ProviderCredentials): Set<string> {
   const available = new Set<string>();
@@ -28,7 +28,6 @@ export function getAvailableTools(creds: ProviderCredentials): Set<string> {
   available.add('calculator');
   available.add('weather');
   available.add('current_time');
-  available.add('create_artifact');
   available.add('read_artifact');
   available.add('read_scratchpad');
   available.add('get_tool_definitions');

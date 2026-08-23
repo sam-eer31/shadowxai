@@ -12,12 +12,26 @@ export function generateId(): string {
 }
 
 /**
- * Generate a short, simple ID for artifacts (e.g. art-7xg2)
+ * Generate a short, clean, collision-resistant unique ID for artifacts (e.g. art_7k9m2x).
+ * Uses unambiguous base32 characters (excludes 0, o, 1, i, l) and cryptographically secure entropy.
  */
-export function generateShortId(prefix = 'art-'): string {
-  const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
+export function generateShortId(prefix = 'art_'): string {
+  const chars = '23456789abcdefghjkmnpqrstuvwxyz';
+  const length = 8;
+
+  if (typeof crypto !== 'undefined' && crypto.getRandomValues) {
+    const bytes = new Uint8Array(length);
+    crypto.getRandomValues(bytes);
+    let str = '';
+    for (let i = 0; i < length; i++) {
+      str += chars[bytes[i] % chars.length];
+    }
+    return `${prefix}${str}`;
+  }
+
+  // Fallback for non-crypto environments
   let id = prefix;
-  for (let i = 0; i < 4; i++) {
+  for (let i = 0; i < length; i++) {
     id += chars.charAt(Math.floor(Math.random() * chars.length));
   }
   return id;

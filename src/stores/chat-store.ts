@@ -21,6 +21,7 @@ import { useSettingsStore } from './settings-store';
 import { useUIStore } from './ui-store';
 import { generateResponse } from '@/lib/chat/generation';
 import { generateConversationTitle } from '@/lib/chat/title';
+import { processScratchpadAsync } from '@/lib/chat/scratchpad';
 
 export interface GenerationState {
   isGenerating: boolean;
@@ -35,6 +36,7 @@ interface ChatState {
   conversations: Conversation[];
   activeConversationId: string | null;
   generations: Record<string, GenerationState>;
+  scratchpadUpdating: Record<string, boolean>;
   initialized: boolean;
   // Actions
   initialize: () => Promise<void>;
@@ -49,6 +51,7 @@ interface ChatState {
   renameConversation: (id: string, title: string) => Promise<void>;
   clearAll: () => Promise<void>;
   getActiveConversation: () => Conversation | undefined;
+  setScratchpadUpdating: (id: string, updating: boolean) => void;
 }
 
 export function getActiveMessages(conv: Conversation): Message[] {
@@ -77,6 +80,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
   conversations: [],
   activeConversationId: null,
   generations: {},
+  scratchpadUpdating: {},
   initialized: false,
 
   initialize: async () => {
@@ -104,6 +108,15 @@ export const useChatStore = create<ChatState>((set, get) => ({
   getActiveConversation: () => {
     const { conversations, activeConversationId } = get();
     return conversations.find((c) => c.id === activeConversationId);
+  },
+
+  setScratchpadUpdating: (id, updating) => {
+    set((state) => ({
+      scratchpadUpdating: {
+        ...state.scratchpadUpdating,
+        [id]: updating
+      }
+    }));
   },
 
   sendMessage: async (text, attachments) => {
@@ -190,6 +203,9 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
     // Save to DB
     await saveConversation(conv);
+
+    // Trigger background scratchpad processing immediately on user message delivery
+    processScratchpadAsync(conv, settings, settings.credentials).catch(console.error);
 
     // Background title generation for new chats
     if (isNewChat) {

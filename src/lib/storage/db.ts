@@ -119,7 +119,63 @@ export async function getArtifact(id: string): Promise<import('@/lib/types').Art
 
 export async function saveArtifact(artifact: import('@/lib/types').Artifact): Promise<void> {
   const db = await getDB();
-  await db.put('artifacts', artifact);
+  const existing = await db.get('artifacts', artifact.id);
+
+  if (existing) {
+    // Preserve and update version history
+    const existingVersions = existing.versions && existing.versions.length > 0
+      ? [...existing.versions]
+      : [{
+          version: existing.currentVersion || 1,
+          content: existing.content,
+          updatedAt: existing.updatedAt || existing.createdAt || Date.now(),
+          filename: existing.filename,
+          language: existing.language,
+        }];
+
+    const lastVersion = existingVersions[existingVersions.length - 1];
+    const hasContentChanged = lastVersion ? lastVersion.content !== artifact.content : true;
+
+    let currentVersion = existing.currentVersion || existingVersions.length;
+    if (hasContentChanged) {
+      currentVersion = existingVersions.length + 1;
+      existingVersions.push({
+        version: currentVersion,
+        content: artifact.content,
+        updatedAt: artifact.updatedAt || Date.now(),
+        filename: artifact.filename || existing.filename,
+        language: artifact.language || existing.language,
+      });
+    }
+
+    const updatedArtifact: import('@/lib/types').Artifact = {
+      ...existing,
+      ...artifact,
+      createdAt: existing.createdAt || artifact.createdAt || Date.now(),
+      updatedAt: artifact.updatedAt || Date.now(),
+      currentVersion,
+      versions: existingVersions,
+    };
+
+    await db.put('artifacts', updatedArtifact);
+  } else {
+    // New artifact
+    const initialVersion = {
+      version: 1,
+      content: artifact.content,
+      updatedAt: artifact.createdAt || Date.now(),
+      filename: artifact.filename,
+      language: artifact.language,
+    };
+
+    const newArtifact: import('@/lib/types').Artifact = {
+      ...artifact,
+      currentVersion: 1,
+      versions: [initialVersion],
+    };
+
+    await db.put('artifacts', newArtifact);
+  }
 }
 
 export async function getArtifactsByConversation(conversationId: string): Promise<import('@/lib/types').Artifact[]> {

@@ -237,6 +237,8 @@ export function PuterConfig() {
                                 'DeepSeek V4 Flash:free': { cost: 0, count: 0, units: 0 },
                                 'GPT-5.6 Luna': { cost: 0, count: 0, units: 0 },
                                 'GLM-4.7 Flash': { cost: 0, count: 0, units: 0 },
+                                'GLM-5.2:free': { cost: 0, count: 0, units: 0 },
+                                'Xiaomi MIMO V2.5': { cost: 0, count: 0, units: 0 },
                                 'Moonshot Kimi K2.6:free': { cost: 0, count: 0, units: 0 },
                                 'FLUX.2 Klein 4B': { cost: 0, count: 0, units: 0 },
                                 'GPT Image 1 Mini': { cost: 0, count: 0, units: 0 },
@@ -275,6 +277,15 @@ export function PuterConfig() {
                                   combined['GPT-5.6 Luna'].cost += itemCost;
                                   combined['GPT-5.6 Luna'].count += itemCount;
                                   combined['GPT-5.6 Luna'].units += itemUnits;
+                                } else if (lower.includes('glm') && lower.includes('5.2')) {
+                                  combined['GLM-5.2:free'].cost += itemCost;
+                                  combined['GLM-5.2:free'].count += itemCount;
+                                  combined['GLM-5.2:free'].units += itemUnits;
+                                } else if (lower.includes('mimo') || lower.includes('xiaomi')) {
+                                  if (!combined['Xiaomi MIMO V2.5']) combined['Xiaomi MIMO V2.5'] = { cost: 0, count: 0, units: 0 };
+                                  combined['Xiaomi MIMO V2.5'].cost += itemCost;
+                                  combined['Xiaomi MIMO V2.5'].count += itemCount;
+                                  combined['Xiaomi MIMO V2.5'].units += itemUnits;
                                 } else if (lower.includes('glm')) {
                                   combined['GLM-4.7 Flash'].cost += itemCost;
                                   combined['GLM-4.7 Flash'].count += itemCount;

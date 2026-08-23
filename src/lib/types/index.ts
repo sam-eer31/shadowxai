@@ -85,6 +85,14 @@ export interface Conversation {
 
 // --- Artifacts ---
 
+export interface ArtifactVersion {
+  version: number;
+  content: string;
+  updatedAt: number;
+  filename?: string;
+  language?: string;
+}
+
 export interface Artifact {
   id: string;
   conversationId: string;
@@ -94,6 +102,8 @@ export interface Artifact {
   content: string;
   createdAt: number;
   updatedAt: number;
+  currentVersion?: number;
+  versions?: ArtifactVersion[];
 }
 
 // --- Tool System ---
@@ -111,6 +121,8 @@ export interface JSONSchemaProperty {
   enum?: string[];
   default?: unknown;
   items?: JSONSchemaProperty;
+  properties?: Record<string, JSONSchemaProperty>;
+  required?: string[];
 }
 
 export interface ToolDefinition {
@@ -119,7 +131,7 @@ export interface ToolDefinition {
   icon: string;
   category: string;
   inputSchema: JSONSchema;
-  execute: (args: Record<string, unknown>) => Promise<ToolResult>;
+  execute: (args: Record<string, unknown>, context?: { conversationId?: string, scratchpad?: import('@/lib/types').Scratchpad, branchArtifacts?: Record<string, import('@/lib/types').BranchArtifactState> }) => Promise<ToolResult>;
   requiresProvider?: ProviderType;
   requiresConfig?: string[];
   terminatesTurn?: boolean;
@@ -251,12 +263,17 @@ export interface ScratchpadImage {
 export interface Scratchpad {
   messageId: string;
   conversationId: string;
-  summary: string;
-  goals: ScratchpadItem[];
-  decisions: ScratchpadItem[];
-  userPreferences: ScratchpadItem[];
-  openQuestions: ScratchpadItem[];
+  summaries: string[];
   importantFacts: ScratchpadItem[];
   artifacts: ScratchpadArtifact[];
   generatedImages: ScratchpadImage[];
+  lastSummarizedUserMessageId?: string;
+}
+
+export interface BranchArtifactState {
+  id: string;
+  filename?: string;
+  language?: string;
+  extension?: string;
+  versions: string[];
 }

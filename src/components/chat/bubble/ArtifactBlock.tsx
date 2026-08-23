@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   FileCode, Check, Copy, ChevronDown, ChevronRight, Terminal,
   FileJson, FileText, Globe, Database, Image as ImageIcon,
@@ -12,52 +12,90 @@ import {
 } from 'react-icons/si';
 import { FaJava } from 'react-icons/fa6';
 import { useArtifactStore } from '@/stores/artifact-store';
+import { useChatStore } from '@/stores/chat-store';
 import { getArtifact } from '@/lib/storage/db';
+import { CodeBlock } from './CodeBlock';
 
 interface ArtifactBlockProps {
   id: string;
   children?: React.ReactNode;
+  isRef?: boolean;
+  streamingContent?: string;
+  artifactVersions?: Record<string, number>;
+  branchArtifacts?: Record<string, import('@/lib/types').BranchArtifactState>;
 }
 
-export function ArtifactBlock({ id, children }: ArtifactBlockProps) {
+export function ArtifactBlock({ id, children, isRef = false, ...props }: ArtifactBlockProps & Record<string, any>) {
   const [copied, setCopied] = useState(false);
-  const [isExpanded, setIsExpanded] = useState(true);
-  const [dbArtifact, setDbArtifact] = useState<{ filename: string; extension: string } | null>(null);
+  const [isExpanded, setIsExpanded] = useState(!isRef);
+  const activeConversationId = useChatStore((s) => s.activeConversationId);
+  const dbId = id ? (id.startsWith(`${activeConversationId}_`) ? id : `${activeConversationId}_${id}`) : '';
   
-  // Use Zustand store without subscribing directly in a way that throws if used outside provider,
-  // since this is a global store.
-  const artifact = useArtifactStore((s) => s.artifacts[id]);
+  const artifact = useArtifactStore((s) => (dbId ? s.artifacts[dbId] : undefined));
+  const branchState = props.branchArtifacts?.[dbId];
+  
+  // Use a ref to track the last known total versions for auto-advancing
+  const previousTotalRef = useRef(branchState?.versions.length || 0);
+
+  // Initialize selected version lazily based on intended version or latest known
+  const [selectedVersion, setSelectedVersion] = useState<number>(() => {
+    const intendedVersion = props.artifactVersions?.[dbId];
+    return intendedVersion || branchState?.versions.length || 1;
+  });
   
   useEffect(() => {
-    if (!artifact) {
-      getArtifact(id).then((data) => {
-        if (data) {
-          setDbArtifact(data);
-          useArtifactStore.getState().addArtifact(id, data.filename, data.extension, data.language);
-        }
-      }).catch(console.error);
+    if (!branchState) return;
+    
+    const currentTotal = branchState.versions.length;
+    const intendedVersion = props.artifactVersions?.[dbId];
+
+    // If a brand new version just finished generating/streaming on THIS message block (no strict intended version bound yet), auto-advance to it
+    if (currentTotal > previousTotalRef.current) {
+      if (!intendedVersion) {
+        setSelectedVersion(currentTotal);
+      }
+      previousTotalRef.current = currentTotal;
     }
-  }, [id, artifact]);
+  }, [branchState?.versions.length, props.artifactVersions, dbId]);
+
+  const versions = branchState?.versions || [];
+  const totalVersions = versions.length;
+  const activeVersionContent = versions[selectedVersion - 1];
+  const isLatestVersion = totalVersions === 0 || selectedVersion === totalVersions;
+
+  // Active code content to show/copy/download
+  let activeContent = null;
+  if (!isLatestVersion || (!children && props.streamingContent === undefined)) {
+    activeContent = activeVersionContent || '';
+  }
+
+  const getCodeText = () => {
+    if (activeContent !== null) {
+      return activeContent;
+    }
+    if (props.streamingContent !== undefined) {
+      return props.streamingContent;
+    }
+    return extractTextFromChildren(children);
+  };
+  const propFilename = props.filename || props.title;
+  const propExtension = props.extension;
+  const propLanguage = props.language;
+
+  const filename = branchState?.filename || propFilename || artifact?.filename || (id ? id : 'untitled_artifact');
+  const extension = branchState?.extension || propExtension || artifact?.extension || (filename.includes('.') ? filename.split('.').pop()! : 'txt');
+  const language = branchState?.language || propLanguage || artifact?.language || extension;
+  const downloadFilename = filename.includes('.') ? filename : `${filename}.${extension}`;
 
   const handleCopy = async () => {
-    // Extract text content from children for copying if needed, or just standard window selection.
-    // For now we'll do a simple copy of text inside the block by accessing DOM if we have a ref,
-    // or just let the user copy standard code blocks inside.
-    // Since code blocks have their own copy buttons, this global artifact copy is optional.
-    
-    // Fallback: copy entire artifact text
-    const textToCopy = extractTextFromChildren(children);
+    const textToCopy = getCodeText();
     await navigator.clipboard.writeText(textToCopy);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const filename = artifact?.filename || dbArtifact?.filename || 'Untitled Artifact';
-  const extension = artifact?.extension || dbArtifact?.extension || 'txt';
-  const downloadFilename = filename.includes('.') ? filename : `${filename}.${extension}`;
-
   const handleDownload = () => {
-    const textToDownload = extractTextFromChildren(children);
+    const textToDownload = getCodeText();
     const blob = new Blob([textToDownload], { type: 'text/plain' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -70,11 +108,11 @@ export function ArtifactBlock({ id, children }: ArtifactBlockProps) {
   };
 
   return (
-    <div className="my-4 rounded-xl border shadow-sm overflow-hidden bg-gradient-to-b from-[var(--bg-secondary)] to-[var(--bg-primary)]" style={{ borderColor: 'var(--border)' }}>
+    <div className="my-4 rounded-xl border shadow-sm bg-gradient-to-b from-[var(--bg-secondary)] to-[var(--bg-primary)]" style={{ borderColor: 'var(--border)' }}>
       {/* Header */}
       <div 
-        className="flex items-center justify-between px-4 py-2 border-b cursor-pointer hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
-        style={{ borderColor: 'var(--border)' }}
+        className={`sticky top-0 z-10 flex items-center justify-between px-4 py-2 border-b cursor-pointer transition-colors backdrop-blur-md ${isExpanded ? 'rounded-t-xl' : 'rounded-xl'} hover:bg-black/5 dark:hover:bg-white/5`}
+        style={{ borderColor: 'var(--border)', backgroundColor: 'color-mix(in srgb, var(--bg-secondary) 85%, transparent)' }}
         onClick={() => setIsExpanded(!isExpanded)}
       >
         <div className="flex items-center gap-2 overflow-hidden">
@@ -82,6 +120,32 @@ export function ArtifactBlock({ id, children }: ArtifactBlockProps) {
           <span className="text-sm font-semibold truncate" style={{ color: 'var(--text-primary)' }}>
             {filename}
           </span>
+          {totalVersions > 1 && (
+            <div 
+              className="flex items-center gap-1.5 px-2 py-0.5 rounded-md border ml-2"
+              style={{ backgroundColor: 'var(--bg-primary)', borderColor: 'var(--border)' }}
+            >
+              <button
+                disabled={selectedVersion <= 1}
+                onClick={(e) => { e.stopPropagation(); setSelectedVersion((v) => Math.max(1, v - 1)); }}
+                className="text-[12px] opacity-60 hover:opacity-100 disabled:opacity-20 transition-opacity flex items-center justify-center cursor-pointer"
+                title="Previous version"
+              >
+                ◀
+              </button>
+              <span className="font-mono text-[10px] font-semibold tracking-widest px-1" style={{ color: 'var(--text-secondary)' }}>
+                {selectedVersion}/{totalVersions}
+              </span>
+              <button
+                disabled={selectedVersion >= totalVersions}
+                onClick={(e) => { e.stopPropagation(); setSelectedVersion((v) => Math.min(totalVersions, v + 1)); }}
+                className="text-[12px] opacity-60 hover:opacity-100 disabled:opacity-20 transition-opacity flex items-center justify-center cursor-pointer"
+                title="Next version"
+              >
+                ▶
+              </button>
+            </div>
+          )}
         </div>
         <div className="flex items-center gap-2">
           <button
@@ -130,7 +194,17 @@ export function ArtifactBlock({ id, children }: ArtifactBlockProps) {
               display: none !important;
             }
           `}} />
-          {children}
+          {activeContent !== null ? (
+            <CodeBlock language={extension || artifact?.language || 'text'}>
+              {activeContent || 'Loading artifact content...'}
+            </CodeBlock>
+          ) : props.streamingContent !== undefined ? (
+            <CodeBlock language={extension || artifact?.language || 'text'}>
+              {props.streamingContent || ' '}
+            </CodeBlock>
+          ) : (
+            children
+          )}
         </div>
       )}
     </div>

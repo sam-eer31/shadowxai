@@ -1,41 +1,52 @@
-import type { ToolDefinition } from '@/lib/types';
-import { getArtifact } from '@/lib/storage/db';
+import type { ToolDefinition, Scratchpad, BranchArtifactState } from '@/lib/types';
 
 export const readArtifactTool: ToolDefinition = {
   name: 'read_artifact',
-  description: 'Reads the code/content of an existing artifact from the database. Use this when you need to inspect the contents of a file you saved earlier.',
+  description: 'Reads the code/content of an existing artifact. Use this when you need to inspect the contents of a file you saved earlier.',
   category: 'System',
   icon: 'file-text',
   inputSchema: {
     type: 'object',
     properties: {
-      id: { type: 'string', description: 'The exact ID of the artifact to read (e.g. art-7xg2).' },
+      filename: { type: 'string', description: 'The exact filename of the artifact to read (e.g. calculator.py).' },
     },
-    required: ['id'],
+    required: ['filename'],
   },
-  execute: async (args: any) => {
-    const { id } = args;
+  execute: async (args: any, context?: { conversationId?: string, scratchpad?: Scratchpad, branchArtifacts?: Record<string, BranchArtifactState> }) => {
+    let filename = args.filename || args.id || args.artifact_id;
     
-    if (!id) {
-      return { toolCallId: '', name: 'read_artifact', result: 'Error: id is required', isError: true };
+    if (!filename) {
+      return { toolCallId: '', name: 'read_artifact', result: 'Error: filename is required', isError: true };
+    }
+
+    const originalId = filename.replace(/[^a-zA-Z0-9]/g, '_');
+    let id = originalId;
+
+    if (context?.conversationId) {
+      id = `${context.conversationId}_${originalId}`;
     }
 
     try {
-      const artifact = await getArtifact(id);
+      const branchState = context?.branchArtifacts?.[id];
       
-      if (!artifact) {
+      if (!branchState || branchState.versions.length === 0) {
         return { 
           toolCallId: '',
           name: 'read_artifact',
-          result: `Error: Artifact with ID ${id} not found in the database. Are you sure the ID is correct?`, 
+          result: `Error: Artifact for filename "${filename}" not found in the current branch's history. Are you sure the filename is correct?`,  
           isError: true 
         };
       }
 
+      // Check if the current branch's scratchpad has a specific version bound
+      const intendedVersion = context?.scratchpad?.artifacts?.find(a => a.id === id)?.version;
+      const targetVersionIndex = intendedVersion ? intendedVersion - 1 : branchState.versions.length - 1;
+      const contentToReturn = branchState.versions[targetVersionIndex];
+
       return {
         toolCallId: '',
         name: 'read_artifact',
-        result: `Content of ${artifact.filename} (ID: ${artifact.id}, Language: ${artifact.language}):\n\n\`\`\`${artifact.language}\n${artifact.content}\n\`\`\``,
+        result: `Content of ${branchState.filename || 'untitled'} (ID: ${branchState.id}, Language: ${branchState.language || 'txt'}${intendedVersion ? `, Version: ${intendedVersion}` : ''}):\n\n\`\`\`${branchState.language || 'txt'}\n${contentToReturn}\n\`\`\``,
         isError: false,
       };
     } catch (error) {

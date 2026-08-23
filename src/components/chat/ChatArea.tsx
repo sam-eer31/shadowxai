@@ -1,10 +1,13 @@
 'use client';
 
-import { useRef, useEffect, useState, useCallback } from 'react';
+import { useRef, useEffect, useState, useCallback, useMemo } from 'react';
 import { ChevronDown } from 'lucide-react';
 import { useChatStore, getActiveMessages } from '@/stores/chat-store';
+import { getActiveScratchpad } from '@/lib/chat/scratchpad';
+import { parseBranchArtifacts } from '@/lib/chat/artifact-parser';
 
 import { ChatHeader } from './ChatHeader';
+import { ScratchpadModal } from '../sidebar/ScratchpadModal';
 import { MessageBubble } from './MessageBubble';
 import { ChatInput } from './ChatInput';
 import { EmptyState } from './EmptyState';
@@ -21,14 +24,36 @@ export function ChatArea() {
   const thoughtTimeMs = genState?.thoughtTimeMs ?? 0;
   const pendingToolCalls = genState?.pendingToolCalls ?? [];
 
+  const scratchpadUpdating = useChatStore((s) => s.scratchpadUpdating);
+  const isScratchpadUpdating = activeId ? (scratchpadUpdating[activeId] ?? false) : false;
+
   const conv = conversations.find((c) => c.id === activeId);
   const activeMessages = conv ? getActiveMessages(conv) : [];
+
+  // Calculate unassigned user messages towards scratchpad trigger
+  const activeScratchpad = conv ? getActiveScratchpad(conv) : null;
+  let startIndex = 0;
+  if (activeScratchpad?.lastSummarizedUserMessageId) {
+    const idx = activeMessages.findIndex((m) => m.id === activeScratchpad.lastSummarizedUserMessageId);
+    if (idx !== -1) {
+      startIndex = idx + 1;
+    }
+  }
+  const unassignedUserCount = activeMessages.slice(startIndex).filter((m) => m.role === 'user').length;
+
+  const { branchArtifacts, messageVersions } = useMemo(() => {
+    if (!activeMessages || !conv) return { branchArtifacts: {}, messageVersions: {} };
+    const { artifacts, messageVersions } = parseBranchArtifacts(conv.id, activeMessages);
+    return { branchArtifacts: artifacts, messageVersions };
+  }, [activeMessages, conv]);
+
   const containerRef = useRef<HTMLDivElement>(null);
   const innerContentRef = useRef<HTMLDivElement>(null);
 
   // Track whether user is at bottom (default true)
   const isAtBottomRef = useRef(true);
   const [showScrollBottom, setShowScrollBottom] = useState(false);
+  const [isScratchpadOpen, setIsScratchpadOpen] = useState(false);
 
   // Instant or smooth scroll helper
   const scrollToBottom = useCallback((smooth = false) => {
@@ -90,13 +115,10 @@ export function ChatArea() {
 
   return (
     <div className="flex flex-col h-full w-full relative min-w-0" style={{ background: 'var(--bg-primary)' }}>
-      {/* Header */}
-      <header
-        className="flex lg:hidden items-center px-3 sm:px-4 py-2.5 sm:py-3 border-b shrink-0 z-10 pt-[max(0.6rem,env(safe-area-inset-top))]"
-        style={{ borderColor: 'var(--border)', background: 'var(--bg-primary)' }}
-      >
-        <ChatHeader conversation={conv} />
-      </header>
+      {/* Floating Header Actions */}
+      <div className="absolute top-0 left-0 right-0 w-full flex items-center px-3 sm:px-4 py-2.5 sm:py-3 z-20 pointer-events-none pt-[max(0.6rem,env(safe-area-inset-top))]">
+        <ChatHeader conversation={conv} onOpenScratchpad={() => setIsScratchpadOpen(true)} />
+      </div>
 
       {/* Messages */}
       {!conv ? (
@@ -125,6 +147,8 @@ export function ChatArea() {
                         activeMessages={activeMessages}
                         isGenerating={isGenerating}
                         isLatestAssistantMessage={msg.id === latestAssistantMessageId}
+                        branchArtifacts={branchArtifacts}
+                        messageVersions={messageVersions[msg.id]}
                       />
                     ))}
 
@@ -168,6 +192,15 @@ export function ChatArea() {
 
       {/* Input bar */}
       <ChatInput />
+
+      {isScratchpadOpen && conv && (
+        <ScratchpadModal
+          isOpen={isScratchpadOpen}
+          onClose={() => setIsScratchpadOpen(false)}
+          scratchpad={getActiveScratchpad(conv)}
+          conversationTitle={conv.title}
+        />
+      )}
     </div>
   );
 }
