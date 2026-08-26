@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { 
-  FileCode, Check, Copy, ChevronDown, ChevronRight, Terminal,
+  FileCode, Check, Copy, ChevronDown, ChevronRight, ChevronLeft, Terminal,
   FileJson, FileText, Globe, Database, Image as ImageIcon,
   Brackets, Hash, Settings, Coffee, Box, Download
 } from 'lucide-react';
@@ -121,28 +121,25 @@ export function ArtifactBlock({ id, children, isRef = false, ...props }: Artifac
             {filename}
           </span>
           {totalVersions > 1 && (
-            <div 
-              className="flex items-center gap-1.5 px-2 py-0.5 rounded-md border ml-2"
-              style={{ backgroundColor: 'var(--bg-primary)', borderColor: 'var(--border)' }}
-            >
+            <div className="flex items-center ml-2">
               <button
                 disabled={selectedVersion <= 1}
                 onClick={(e) => { e.stopPropagation(); setSelectedVersion((v) => Math.max(1, v - 1)); }}
-                className="text-[12px] opacity-60 hover:opacity-100 disabled:opacity-20 transition-opacity flex items-center justify-center cursor-pointer"
+                className="opacity-60 hover:opacity-100 disabled:opacity-20 transition-opacity flex items-center justify-center cursor-pointer"
                 title="Previous version"
               >
-                ◀
+                <ChevronLeft size={14} style={{ color: 'var(--text-tertiary)' }} />
               </button>
-              <span className="font-mono text-[10px] font-semibold tracking-widest px-1" style={{ color: 'var(--text-secondary)' }}>
+              <span className="font-mono text-[11px] font-medium px-0.5 whitespace-nowrap" style={{ color: 'var(--text-secondary)' }}>
                 {selectedVersion}/{totalVersions}
               </span>
               <button
                 disabled={selectedVersion >= totalVersions}
                 onClick={(e) => { e.stopPropagation(); setSelectedVersion((v) => Math.min(totalVersions, v + 1)); }}
-                className="text-[12px] opacity-60 hover:opacity-100 disabled:opacity-20 transition-opacity flex items-center justify-center cursor-pointer"
+                className="opacity-60 hover:opacity-100 disabled:opacity-20 transition-opacity flex items-center justify-center cursor-pointer"
                 title="Next version"
               >
-                ▶
+                <ChevronRight size={14} style={{ color: 'var(--text-tertiary)' }} />
               </button>
             </div>
           )}

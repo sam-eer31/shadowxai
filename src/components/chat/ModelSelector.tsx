@@ -193,33 +193,6 @@ export function ModelSelector({ onClose }: ModelSelectorProps) {
                                 Thinking
                               </span>
                             )}
-                            {model.capabilities.vision && (
-                              <span
-                                className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-md font-medium"
-                                style={{ background: 'var(--accent-light)', color: 'var(--accent)' }}
-                              >
-                                <Eye size={10} />
-                                Vision
-                              </span>
-                            )}
-                            {model.capabilities.toolCalling && (
-                              <span
-                                className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-md font-medium"
-                                style={{ background: 'rgba(16, 185, 129, 0.15)', color: 'var(--success)' }}
-                              >
-                                <Wrench size={10} />
-                                Tools
-                              </span>
-                            )}
-                            {model.capabilities.streaming && (
-                              <span
-                                className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-md font-medium"
-                                style={{ background: 'rgba(245, 158, 11, 0.15)', color: 'var(--warning)' }}
-                              >
-                                <Zap size={10} />
-                                Stream
-                              </span>
-                            )}
                           </div>
                         </div>
 

@@ -7,9 +7,10 @@ interface ScratchpadModalProps {
   onClose: () => void;
   scratchpad: Scratchpad;
   conversationTitle: string;
+  unassignedUserCount: number;
 }
 
-export function ScratchpadModal({ isOpen, onClose, scratchpad, conversationTitle }: ScratchpadModalProps) {
+export function ScratchpadModal({ isOpen, onClose, scratchpad, conversationTitle, unassignedUserCount }: ScratchpadModalProps) {
   if (!isOpen) return null;
 
   return (
@@ -26,6 +27,9 @@ export function ScratchpadModal({ isOpen, onClose, scratchpad, conversationTitle
           <div className="flex items-center gap-2 text-[15px] font-semibold text-gray-900 dark:text-gray-100">
             <Book size={18} className="text-blue-500" />
             Active Scratchpad
+            <span className="text-xs font-normal text-gray-500 ml-2 bg-black/5 dark:bg-white/10 px-2 py-0.5 rounded-full" title="Messages since last summary">
+              {unassignedUserCount}/11
+            </span>
           </div>
           <button
             onClick={onClose}

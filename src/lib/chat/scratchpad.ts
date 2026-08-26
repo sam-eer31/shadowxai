@@ -3,58 +3,38 @@ import { PuterProvider } from '@/lib/providers/puter';
 import { useChatStore, getActiveMessages } from '@/stores/chat-store';
 import { saveConversation } from '@/lib/storage/db';
 
-const INTERNAL_MODEL = 'xiaomi/mimo-v2.5';
+const INTERNAL_MODEL = 'deepseek-ai/deepseek-v4-flash-0731';
 
 // Internal tools available only to the background LLM
 const scratchpadTools: ProviderToolDef[] = [
   {
-    name: 'add_summary',
-    description: 'Add a new high-level summary paragraph for the latest processed messages.',
+    name: 'update_scratchpad',
+    description: 'Update the scratchpad with a new summary and any new or modified facts.',
     parameters: {
       type: 'object',
       properties: {
-        summary: { type: 'string', description: 'A concise summary of the latest batch of messages.' }
+        summary: { type: 'string', description: 'A concise, high-level chronological summary of the new messages.' },
+        new_facts: {
+          type: 'array',
+          description: 'New short, strictly ONE-LINE facts to add to the importantFacts ledger.',
+          items: { type: 'string' }
+        },
+        update_facts: {
+          type: 'array',
+          description: 'Existing facts to update.',
+          items: {
+            type: 'object',
+            properties: { id: { type: 'string' }, content: { type: 'string' }, status: { type: 'string', enum: ['active', 'completed', 'irrelevant'] } },
+            required: ['id']
+          }
+        },
+        delete_fact_ids: {
+          type: 'array',
+          description: 'IDs of existing facts to delete.',
+          items: { type: 'string' }
+        }
       },
       required: ['summary']
-    }
-  },
-  {
-    name: 'add_item',
-    description: 'Add a new item to one of the scratchpad categories.',
-    parameters: {
-      type: 'object',
-      properties: {
-        category: { type: 'string', enum: ['importantFacts'] },
-        content: { type: 'string' },
-        status: { type: 'string', enum: ['active', 'completed', 'irrelevant'] }
-      },
-      required: ['category', 'content']
-    }
-  },
-  {
-    name: 'update_item',
-    description: 'Update an existing item in the scratchpad by ID.',
-    parameters: {
-      type: 'object',
-      properties: {
-        category: { type: 'string', enum: ['importantFacts'] },
-        id: { type: 'string' },
-        status: { type: 'string', enum: ['active', 'completed', 'irrelevant'] },
-        content: { type: 'string' }
-      },
-      required: ['category', 'id']
-    }
-  },
-  {
-    name: 'delete_item',
-    description: 'Delete an item from the scratchpad by ID.',
-    parameters: {
-      type: 'object',
-      properties: {
-        category: { type: 'string', enum: ['importantFacts'] },
-        id: { type: 'string' }
-      },
-      required: ['category', 'id']
     }
   }
 ];
@@ -138,12 +118,16 @@ export async function processScratchpadAsync(
       return `${m.role.toUpperCase()}: ${text}`;
     }).join('\n\n');
 
-    const systemPrompt = `You are a background Memory Manager AI. Your job is to extract important information from the conversation and update the Scratchpad using the provided tools.
-    
-Current Scratchpad JSON (excluding past summaries):
+    const systemPrompt = `You are Shadow's Background Memory Manager, an autonomous AI agent responsible for maintaining long-term conversational memory. Your purpose is to continuously extract, organize, and synthesize critical information from ongoing user interactions into the Scratchpad.
+
+Current Scratchpad State:
 ${JSON.stringify({ ...scratchpad, summaries: undefined }, null, 2)}
 
-You MUST use your tools to update the scratchpad based on the new messages below. If an important fact is stated, add it. You MUST also call 'add_summary' to provide a concise summary for this specific batch of new messages. Don't write conversational text, just use tools.`;
+Directives:
+1. CRITICAL: Analyze the messages meticulously and call 'update_scratchpad'. You MUST provide a summary.
+2. Ensure any new facts you extract are SHORT and strictly ONE-LINE long. Do not write paragraphs for facts.
+3. Manage the 'importantFacts' ledger by providing 'new_facts', 'update_facts', or 'delete_fact_ids' inside the single tool call.
+4. Execute silently. Respond ONLY with the 'update_scratchpad' tool call. Do not output conversational text or explanations.`;
 
     const puterProvider = new PuterProvider();
     
@@ -157,49 +141,58 @@ You MUST use your tools to update the scratchpad based on the new messages below
     });
 
     let dirty = false;
+    const pendingToolCalls = new Map<string, { name: string; args: any }>();
 
-    // Process the stream and execute tools locally
+    // Process the stream and collect tool calls
     for await (const chunk of stream) {
       if (chunk.type === 'tool_call' && chunk.toolCall) {
-        dirty = true;
-        const tc = chunk.toolCall;
-        const args = tc.arguments as Record<string, any>;
+        pendingToolCalls.set(chunk.toolCall.id, {
+          name: chunk.toolCall.name,
+          args: chunk.toolCall.arguments
+        });
+      }
+    }
+
+    console.log('[Scratchpad] Model finished streaming. Collected tool calls:', Array.from(pendingToolCalls.values()));
+
+    // Execute fully accumulated tool calls
+    if (pendingToolCalls.size > 0) {
+      dirty = true;
+      for (const [id, tc] of pendingToolCalls.entries()) {
+        const args = tc.args as Record<string, any>;
         
-        switch (tc.name) {
-          case 'add_summary':
+        if (tc.name === 'update_scratchpad') {
+          if (args.summary) {
             if (!scratchpad.summaries) scratchpad.summaries = [];
             scratchpad.summaries.push(args.summary);
-            break;
-          case 'add_item': {
-            const cat = args.category as keyof Pick<Scratchpad, 'importantFacts'>;
-            if (scratchpad[cat]) {
-              scratchpad[cat].push({
-                id: Math.random().toString(36).substring(2, 8),
-                content: args.content,
-                status: args.status,
-                updatedAt: Date.now()
-              });
-            }
-            break;
           }
-          case 'update_item': {
-            const cat = args.category as keyof Pick<Scratchpad, 'importantFacts'>;
-            if (scratchpad[cat]) {
-              const item = scratchpad[cat].find(i => i.id === args.id);
+          
+          if (!scratchpad.importantFacts) scratchpad.importantFacts = [];
+
+          if (args.new_facts && Array.isArray(args.new_facts)) {
+            for (const fact of args.new_facts) {
+               scratchpad.importantFacts.push({
+                 id: Math.random().toString(36).substring(2, 8),
+                 content: fact,
+                 status: 'active',
+                 updatedAt: Date.now()
+               });
+            }
+          }
+
+          if (args.update_facts && Array.isArray(args.update_facts)) {
+            for (const update of args.update_facts) {
+              const item = scratchpad.importantFacts.find(i => i.id === update.id);
               if (item) {
-                if (args.content) item.content = args.content;
-                if (args.status) item.status = args.status;
+                if (update.content) item.content = update.content;
+                if (update.status) item.status = update.status;
                 item.updatedAt = Date.now();
               }
             }
-            break;
           }
-          case 'delete_item': {
-            const cat = args.category as keyof Pick<Scratchpad, 'importantFacts'>;
-            if (scratchpad[cat]) {
-              scratchpad[cat] = scratchpad[cat].filter(i => i.id !== args.id);
-            }
-            break;
+
+          if (args.delete_fact_ids && Array.isArray(args.delete_fact_ids)) {
+            scratchpad.importantFacts = scratchpad.importantFacts.filter(i => !args.delete_fact_ids.includes(i.id));
           }
         }
       }

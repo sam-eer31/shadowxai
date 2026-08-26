@@ -206,7 +206,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
       modelsChanged = true;
     }
     if (provider === 'puter' && !selectedModels['puter']) {
-      selectedModels['puter'] = 'deepseek-v4-flash';
+      selectedModels['puter'] = 'deepseek-ai/deepseek-v4-flash-0731';
       modelsChanged = true;
     }
     

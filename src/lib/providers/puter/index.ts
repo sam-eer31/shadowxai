@@ -14,7 +14,7 @@ const PUTER_MODEL_CAPS: Record<
   { vision: boolean; tools: boolean; thinking: 'none' | 'levels' | 'on_off'; thinkingOptions?: { id: string; label: string }[] }
 > = {
   'gpt-5.6-luna': { vision: true, tools: true, thinking: 'none' },
-  'deepseek-v4-flash': { 
+  'deepseek-ai/deepseek-v4-flash-0731': { 
     vision: false, 
     tools: true, 
     thinking: 'none'
@@ -40,6 +40,11 @@ const PUTER_MODEL_CAPS: Record<
     thinking: 'none'
   },
   'moonshotai/kimi-k2.6:free': {
+    vision: false,
+    tools: true,
+    thinking: 'none'
+  },
+  'poolside/laguna-s-2.1': {
     vision: false,
     tools: true,
     thinking: 'none'
@@ -76,12 +81,13 @@ export class PuterProvider implements AIProvider {
     // Hardcode the models available via Puter
     const models = [
       { id: 'gpt-5.6-luna', name: 'GPT-5.6 Luna' },
-      { id: 'deepseek-v4-flash', name: 'DeepSeek V4 Flash' },
+      { id: 'deepseek-ai/deepseek-v4-flash-0731', name: 'DeepSeek V4 Flash 0731' },
       { id: 'deepseek-v4-flash:free', name: 'DeepSeek V4 Flash:free' },
       { id: 'z-ai/glm-4.7-flash', name: 'GLM-4.7 Flash' },
       { id: 'z-ai/glm-5.2:free', name: 'GLM-5.2:free' },
       { id: 'xiaomi/mimo-v2.5', name: 'Xiaomi MIMO V2.5' },
       { id: 'moonshotai/kimi-k2.6:free', name: 'Moonshot Kimi K2.6:free' },
+      { id: 'poolside/laguna-s-2.1', name: 'Laguna S 2.1' },
     ];
 
     return models.map((m) => ({
@@ -183,10 +189,69 @@ export class PuterProvider implements AIProvider {
         }));
       }
 
-      const responseStream = await puter.ai.chat(puterMessages as any, puterOptions);
+      const puterUrl = (window as any).puter?.APIOrigin || 'https://api.puter.com';
+      const authToken = (window as any).puter?.authToken;
+
+      const response = await fetch(`${puterUrl}/drivers/call`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'text/plain;actually=json',
+          'Authorization': `Bearer ${authToken}`,
+        },
+        body: JSON.stringify({
+          interface: 'puter-chat-completion',
+          driver: 'ai-chat',
+          test_mode: false,
+          method: 'complete',
+          args: {
+            messages: puterMessages,
+            ...puterOptions
+          },
+          auth_token: authToken,
+        }),
+        signal: params.signal,
+      });
+
+      if (!response.ok) {
+        let errorBody = '';
+        try {
+          errorBody = await response.text();
+        } catch (e) {}
+        throw new Error(`Puter API error: ${response.status} ${response.statusText} ${errorBody}`);
+      }
+
+      if (!response.body) {
+        throw new Error('No response stream returned from Puter');
+      }
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+
+      async function* getResponseStream() {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buffer += decoder.decode(value, { stream: true });
+          let nl;
+          while ((nl = buffer.indexOf('\n')) !== -1) {
+            const line = buffer.slice(0, nl);
+            buffer = buffer.slice(nl + 1);
+            if (!line.trim()) continue;
+            try {
+              yield JSON.parse(line);
+            } catch (e) {
+              // ignore
+            }
+          }
+        }
+      }
+
+      const responseStream = getResponseStream();
       const toolCallsBuffer: Record<number, { id: string; name: string; arguments: string }> = {};
 
       for await (const chunk of responseStream as any) {
+        if (params.signal?.aborted) break;
         if (typeof chunk === 'string') {
           yield { type: 'text', text: chunk };
         } else {

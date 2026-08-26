@@ -115,10 +115,14 @@ export function ChatArea() {
 
   return (
     <div className="flex flex-col h-full w-full relative min-w-0" style={{ background: 'var(--bg-primary)' }}>
-      {/* Floating Header Actions */}
-      <div className="absolute top-0 left-0 right-0 w-full flex items-center px-3 sm:px-4 py-2.5 sm:py-3 z-20 pointer-events-none pt-[max(0.6rem,env(safe-area-inset-top))]">
+      {/* Header */}
+      <header
+        className="flex items-center px-3 sm:px-4 py-2.5 sm:py-3 shrink-0 z-20 pt-[max(0.6rem,env(safe-area-inset-top))] 
+                   lg:absolute lg:top-0 lg:left-0 lg:right-0 lg:pointer-events-none 
+                   max-lg:border-b max-lg:bg-[var(--bg-primary)] max-lg:border-[var(--border)]"
+      >
         <ChatHeader conversation={conv} onOpenScratchpad={() => setIsScratchpadOpen(true)} />
-      </div>
+      </header>
 
       {/* Messages */}
       {!conv ? (
@@ -199,6 +203,7 @@ export function ChatArea() {
           onClose={() => setIsScratchpadOpen(false)}
           scratchpad={getActiveScratchpad(conv)}
           conversationTitle={conv.title}
+          unassignedUserCount={unassignedUserCount}
         />
       )}
     </div>

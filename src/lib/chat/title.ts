@@ -11,10 +11,10 @@ export async function generateConversationTitle(userText: string): Promise<strin
   let providerType = enabledProviders[0];
   let modelId = '';
 
-  // Prefer puter deepseek-v4-flash, fallback to ollama gemma4:cloud
+  // Prefer puter deepseek-ai/deepseek-v4-flash-0731, fallback to ollama gemma4:cloud
   if (enabledProviders.includes('puter')) {
     providerType = 'puter';
-    modelId = 'deepseek-v4-flash';
+    modelId = 'deepseek-ai/deepseek-v4-flash-0731';
   } else if (enabledProviders.includes('ollama')) {
     providerType = 'ollama';
     modelId = settings.selectedModels['ollama'] || 'gemma4:cloud';

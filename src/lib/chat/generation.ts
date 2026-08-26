@@ -74,6 +74,7 @@ export async function generateResponse(
     let currentThoughtTimeMs = 0;
     const allToolCalls: ToolCall[] = [];
     const allToolResults: ToolResult[] = [];
+    let generationError = '';
 
     // Loop to handle tool calls
     while (toolTurns <= MAX_TOOL_TURNS) {
@@ -226,9 +227,10 @@ export async function generateResponse(
         }
 
         if (chunk.type === 'error') {
+          generationError = chunk.error || 'An error occurred.';
           useUIStore.getState().addToast({
             type: 'error',
-            message: chunk.error || 'An error occurred.',
+            message: generationError,
           });
           break;
         }
@@ -445,7 +447,7 @@ export async function generateResponse(
     }
 
     // Add final assistant message
-    if (fullText || fullThought || allToolCalls.length === 0) {
+    if (fullText || fullThought || allToolCalls.length === 0 || generationError) {
       let currentScratchpad = getActiveScratchpad(conv);
       let scratchpadUpdated = false;
 
@@ -499,8 +501,12 @@ export async function generateResponse(
       if (fullThought) {
         contentBlocks.push({ type: 'thought', thought: fullThought, thoughtTimeMs: currentThoughtTimeMs });
       }
-      if (fullText) {
-        contentBlocks.push({ type: 'text', text: fullText });
+      if (fullText || generationError) {
+        let finalOutput = fullText;
+        if (generationError) {
+          finalOutput += (finalOutput ? '\n\n' : '') + `**Error:** ${generationError}`;
+        }
+        contentBlocks.push({ type: 'text', text: finalOutput });
       }
       if (contentBlocks.length === 0) {
         contentBlocks.push({ type: 'text', text: '' });
