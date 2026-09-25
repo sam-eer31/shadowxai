@@ -20,7 +20,7 @@ All your conversations, settings, and generated artifacts are stored locally in 
 ## ✨ Features
 
 - 🔒 **Absolute Privacy:** 100% local data storage. Your conversations never leave your browser unless explicitly sent to the AI provider you configure.
-- 🔑 **Bring Your Own Keys (BYOK):** Seamless integration with Puter.js, local Ollama instances, and Cloudflare AI.
+- 🔑 **Bring Your Own Keys (BYOK):** Seamless integration with Puter.js, cloud-based Ollama models, and Cloudflare AI.
 - 🛠️ **Rich Tool Calling:** Enhance your AI's capabilities with built-in tools:
   - **Web Search** (via Tavily)
   - **Image Generation** (Flux models)
@@ -64,7 +64,7 @@ Ensure you have [Node.js](https://nodejs.org/) (v18+) and your preferred package
 Shadow is provider-agnostic. Open the **Settings** modal in the app to configure your integrations:
 
 - **Puter:** Access cutting-edge models seamlessly via Puter.js.
-- **Ollama:** Run local, uncensored, and private models directly on your hardware.
+- **Ollama:** Access powerful cloud-based Ollama models directly via API.
 - **Cloudflare:** Leverage Cloudflare's serverless AI inference network for fast and scalable AI interactions.
 
 ## 🛠 Tech Stack
