@@ -42,8 +42,8 @@ Ensure you have [Node.js](https://nodejs.org/) (v18+) and your preferred package
 
 1. **Clone the repository:**
    ```bash
-   git clone https://github.com/your-username/shadow.git
-   cd shadow
+   git clone https://github.com/sam-eer31/shadowxai.git
+   cd shadowxai
    ```
 
 2. **Install dependencies:**
