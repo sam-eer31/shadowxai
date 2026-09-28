@@ -19,27 +19,13 @@ const PUTER_MODEL_CAPS: Record<
     tools: true, 
     thinking: 'none'
   },
-  'deepseek-v4-flash:free': { 
-    vision: false, 
-    tools: true, 
-    thinking: 'none'
-  },
   'z-ai/glm-4.7-flash': {
     vision: false,
     tools: true,
     thinking: 'none'
   },
-  'z-ai/glm-5.2:free': {
-    vision: false,
-    tools: true,
-    thinking: 'none'
-  },
+
   'xiaomi/mimo-v2.5': {
-    vision: false,
-    tools: true,
-    thinking: 'none'
-  },
-  'moonshotai/kimi-k2.6:free': {
     vision: false,
     tools: true,
     thinking: 'none'
@@ -80,13 +66,10 @@ export class PuterProvider implements AIProvider {
   async listModels(): Promise<AIModel[]> {
     // Hardcode the models available via Puter
     const models = [
-      { id: 'gpt-5.6-luna', name: 'GPT-5.6 Luna' },
+      { id: 'gpt-5.6-luna', name: 'GPT-5.6 Luna', unavailable: true },
       { id: 'deepseek-ai/deepseek-v4-flash-0731', name: 'DeepSeek V4 Flash 0731' },
-      { id: 'deepseek-v4-flash:free', name: 'DeepSeek V4 Flash:free' },
       { id: 'z-ai/glm-4.7-flash', name: 'GLM-4.7 Flash' },
-      { id: 'z-ai/glm-5.2:free', name: 'GLM-5.2:free' },
       { id: 'xiaomi/mimo-v2.5', name: 'Xiaomi MIMO V2.5' },
-      { id: 'moonshotai/kimi-k2.6:free', name: 'Moonshot Kimi K2.6:free' },
       { id: 'poolside/laguna-s-2.1', name: 'Laguna S 2.1' },
     ];
 

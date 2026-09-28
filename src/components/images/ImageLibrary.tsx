@@ -71,9 +71,21 @@ export function ImageLibrary() {
   };
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+    <div
+      className="fixed inset-0 z-[100] flex items-center justify-center p-0 md:p-4 animate-in fade-in duration-200"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) closeImageLibrary();
+      }}
+    >
+      {/* Backdrop */}
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity" />
+
       <div 
-        className="w-full max-w-5xl h-[90vh] flex flex-col rounded-2xl shadow-2xl overflow-hidden border"
+        className={`
+          relative w-full h-full md:h-[90vh] md:max-w-5xl flex flex-col
+          md:rounded-2xl shadow-2xl overflow-hidden border-0 md:border
+          pt-[max(0.5rem,env(safe-area-inset-top))] pb-[max(0.5rem,env(safe-area-inset-bottom))]
+        `}
         style={{
           background: 'var(--bg-primary)',
           borderColor: 'var(--border)'
@@ -84,16 +96,16 @@ export function ImageLibrary() {
           className="flex items-center justify-between px-6 py-4 border-b shrink-0"
           style={{ borderColor: 'var(--border)' }}
         >
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 min-w-0 pr-2">
             <div 
-              className="w-10 h-10 rounded-xl flex items-center justify-center"
+              className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
               style={{ background: 'var(--bg-secondary)', color: 'var(--text-secondary)' }}
             >
               <ImageIcon size={20} />
             </div>
-            <div>
-              <h2 className="text-xl font-bold" style={{ color: 'var(--text-primary)' }}>Image Library</h2>
-              <p className="text-sm mt-0.5" style={{ color: 'var(--text-secondary)' }}>
+            <div className="min-w-0">
+              <h2 className="text-xl font-bold truncate" style={{ color: 'var(--text-primary)' }}>Image Library</h2>
+              <p className="text-sm mt-0.5 truncate" style={{ color: 'var(--text-secondary)' }}>
                 Your previously generated images across all chats
               </p>
             </div>
@@ -158,13 +170,13 @@ export function ImageLibrary() {
         <div className="fixed inset-0 z-[110] bg-black/90 flex flex-col items-center justify-center animate-in fade-in zoom-in-95 duration-200">
           <button
             onClick={() => setSelectedImage(null)}
-            className="absolute top-6 right-6 w-12 h-12 flex items-center justify-center rounded-full bg-black/50 text-white/70 hover:text-white hover:bg-black/70 transition-all backdrop-blur-sm"
+            className="absolute top-4 right-4 md:top-6 md:right-6 w-10 h-10 md:w-12 md:h-12 flex items-center justify-center rounded-full bg-black/50 text-white/70 hover:text-white hover:bg-black/70 transition-all backdrop-blur-sm z-[120]"
           >
             <X size={24} />
           </button>
 
-          <div className="max-w-5xl w-full max-h-[80vh] flex flex-col md:flex-row gap-6 p-6">
-            <div className="flex-1 flex items-center justify-center min-h-0">
+          <div className="max-w-5xl w-full h-full md:h-auto md:max-h-[80vh] flex flex-col md:flex-row gap-4 md:gap-6 p-4 md:p-6 overflow-y-auto md:overflow-visible pt-[max(4rem,env(safe-area-inset-top))] pb-[max(2rem,env(safe-area-inset-bottom))]">
+            <div className="flex-1 flex items-center justify-center min-h-[40vh] md:min-h-0">
               <img 
                 src={selectedImage.imageUrl} 
                 alt={selectedImage.imagePrompt || 'Generated image'} 

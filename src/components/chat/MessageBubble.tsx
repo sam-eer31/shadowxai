@@ -352,17 +352,44 @@ export function MessageBubble({ message, allMessages, activeMessages, isGenerati
                       </div>
                     );
 
-                  case 'tool_group':
+                  case 'tool_group': {
+                    const pendingImageCalls = block.toolCalls
+                      .map((c: any) => c.toolCall || c)
+                      .filter((call: any) => {
+                        if (call.name !== 'image_generation') return false;
+                        if (!allMessages) return true;
+                        for (const m of allMessages) {
+                          if (m.content?.some((mc) => mc.type === 'tool_result' && mc.toolResult?.toolCallId === call.id)) {
+                            return false;
+                          }
+                        }
+                        return true;
+                      });
+
                     return (
-                      <div key={block.key} className="flex flex-col">
+                      <div key={block.key} className="flex flex-col gap-2.5">
                         <ToolBlock
                           toolCalls={block.toolCalls}
                           allMessages={allMessages}
                           isTurnActive={isContinued && block.isLastToolGroup}
                           hasFinalText={!block.isLastToolGroup || (isLastBlock ? false : true)}
                         />
+                        {pendingImageCalls.map((call: any, i: number) => (
+                          <div key={`skeleton-${call.id || i}`} className="animate-fade-in w-full max-w-[260px] sm:max-w-sm">
+                            <div
+                              className="rounded-2xl overflow-hidden flex flex-col items-center justify-center gap-3 animate-pulse border aspect-square w-full shadow-xs"
+                              style={{ background: 'var(--bg-tertiary)', borderColor: 'var(--border)' }}
+                            >
+                              <ImageIcon size={28} style={{ color: 'var(--text-tertiary)' }} className="opacity-50" />
+                              <span className="text-xs font-medium" style={{ color: 'var(--text-secondary)' }}>
+                                Generating image...
+                              </span>
+                            </div>
+                          </div>
+                        ))}
                       </div>
                     );
+                  }
 
                   case 'image':
                     return (

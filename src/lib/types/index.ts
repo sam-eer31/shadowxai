@@ -22,6 +22,7 @@ export interface AIModel {
   name: string;
   provider: ProviderType;
   capabilities: ModelCapabilities;
+  unavailable?: boolean;
 }
 
 // --- Message Types ---

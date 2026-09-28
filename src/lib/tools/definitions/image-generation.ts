@@ -92,7 +92,10 @@ export const imageGenerationTool: ToolDefinition = {
       }
 
       try {
-        const model = settings.selectedImageModel || 'openai/gpt-image-1-mini';
+        let model = settings.selectedImageModel || 'black-forest-labs/flux-2-klein-4b';
+        if (model.includes('openai/gpt-image')) {
+          model = 'black-forest-labs/flux-2-klein-4b'; // Fallback for unavailable models
+        }
         const img = await puter.ai.txt2img(prompt, { 
           model,
           quality: 'low' // Matches the setting from test.html

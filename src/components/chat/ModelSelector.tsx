@@ -147,7 +147,9 @@ export function ModelSelector({ onClose }: ModelSelectorProps) {
                     return (
                       <button
                         key={model.id}
+                        disabled={model.unavailable}
                         onClick={() => {
+                          if (model.unavailable) return;
                           setActiveProvider(model.provider);
                           setSelectedModel(model.provider, model.id);
                           onClose();
@@ -155,7 +157,9 @@ export function ModelSelector({ onClose }: ModelSelectorProps) {
                         className={`
                           w-full flex items-center justify-between p-3 rounded-xl text-left transition-all duration-150 border
                           ${
-                            isCurrent
+                            model.unavailable
+                              ? 'opacity-50 cursor-not-allowed'
+                              : isCurrent
                               ? 'bg-black/10 dark:bg-white/10'
                               : 'hover:bg-black/5 dark:hover:bg-white/5 active:scale-[0.99]'
                           }
@@ -166,18 +170,18 @@ export function ModelSelector({ onClose }: ModelSelectorProps) {
                       >
                         <div className="flex-1 min-w-0 pr-3">
                           <div
-                            className={`text-sm font-medium flex items-center gap-2 ${isCurrent ? 'font-semibold' : ''}`}
+                            className={`text-sm flex items-center gap-2 ${isCurrent ? 'font-semibold' : 'font-medium'}`}
                             style={{
                               color: isCurrent ? 'var(--accent)' : 'var(--text-primary)',
                             }}
                           >
                             <span className="truncate">{model.name}</span>
-                            {model.id.includes(':free') && (
+                            {model.unavailable && (
                               <span
                                 className="shrink-0 inline-flex items-center text-[9px] px-1.5 py-0.5 rounded font-bold uppercase tracking-wider"
-                                style={{ background: 'rgba(234, 179, 8, 0.15)', color: '#eab308' }}
+                                style={{ background: 'rgba(239, 68, 68, 0.15)', color: '#ef4444' }}
                               >
-                                Slower
+                                Unavailable
                               </span>
                             )}
                           </div>
